@@ -10,3 +10,7 @@ Para instalar o Tainacan basta colocar ele na sua pasta themes, note que para in
 Se tiver melhorias de qualquer tipo de correção de BUG por favor faça um pull request.
 
 ;)
+
+Recursos:
+
+https://l3p.fic.ufg.br/p/9579-politica-nacional-de-acervos-digitais
