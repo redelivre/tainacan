@@ -96,14 +96,19 @@ button.collection-trash {
           padding-bottom: 10px;
           padding-top: 10px;
 
+          button.export-btn {
+            span {
+              font-size: 15px;
+            }
+          }
+
           label {
             color: $brand-medium-blue;
             font-weight: normal;
             padding-top: 5px;
 
             &.order-by-label {
-              width: 140px;
-              // background-color: #0A246A;
+               width: 140px;
             }
           } // label
 
@@ -113,9 +118,6 @@ button.collection-trash {
           }
 
           .tainacan-add-item {
-            /*
-            float: left;
-            */
             width: 11%;
             margin-right: 15px;
 
@@ -158,7 +160,7 @@ button.collection-trash {
             }
           }
 
-          button#sort_list:last-child {
+          button#desc {
             margin-left: 5px;
           }
 
@@ -840,7 +842,7 @@ a.events-link {
   color:white;
   font-size:13px;
   border-radius: 2px;
-  padding: 0 4px 2px 1px;
+  // padding: 0 4px 2px 1px;
 }
 
 a.evt_container {

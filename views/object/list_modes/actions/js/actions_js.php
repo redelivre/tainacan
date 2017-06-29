@@ -72,6 +72,7 @@
 
         $('a.ac-open-file').on('click', function() {
             var item_id = $(this).parents().find('.open_item_actions').first().attr('id').replace('action-', '');
+            show_modal_main();
             $.ajax({
                 url: path, type: 'POST',
                 data: { operation: 'press_item', object_id: item_id, collection_id: $('#collection_id').val() }
@@ -95,7 +96,13 @@
                     var projectLogo = new Image();
                     projectLogo.src = $(logo).attr("src");
                     var logo_settings = { width: (projectLogo.naturalWidth * 0.48), height: (projectLogo.naturalHeight * 0.48) };
-                    pressPDF.addImage(projectLogo, 'PNG', line_dims.startX + 15, line_dims.startY - 45, logo_settings.width, logo_settings.height);
+
+                    try {
+                        pressPDF.addImage(projectLogo, 'PNG', line_dims.startX + 15, line_dims.startY - 45, logo_settings.width, logo_settings.height);
+                    } catch (e) {
+                        cl('Error adding tainacan\'s logo');
+                    }
+
                     pressPDF.rect(line_dims.startX, line_dims.startY, line_dims.length, line_dims.thickness, 'F');
                     pressPDF.rect(line_dims.startX, line_dims.startY + 50, line_dims.length, line_dims.thickness, 'F');
 
@@ -114,19 +121,21 @@
                     pressPDF.setFontSize(9.5);
                     pressPDF.text( $(".item-author strong").first().text(), (line_dims.startX + 15), dist_from_top + 20); // Author
                     pressPDF.setFontType('normal');
-                    pressPDF.text( itm.author, (line_dims.startX + 70), dist_from_top + 20);
 
-                    var author_width = pressPDF.getTextDimensions(itm.author).w;
+                    var author_name = (itm.author != null) ? itm.author : 'Tainacan';
+                    pressPDF.text( author_name, (line_dims.startX + 70), dist_from_top + 20);
+
+                    var author_width = pressPDF.getTextDimensions(author_name).w + 2;
                     pressPDF.text(' em ' + item_date, (line_dims.startX + 70) + author_width, dist_from_top + 20);
 
                     var item_desc = itm.desc;
                     var desc_yDist = 140;
                     var desc_xDist = lMargin + baseX;
                     var desc_max_width = (pdfInMM-lMargin-rMargin);
-                    if(itm.tmb) {
+                    if(itm.tbn) {
                         lMargin = 80;
                         pdfInMM = 490;
-                        var thumb_ext = itm.tmb.type.ext;
+                        var thumb_ext = itm.tbn.ext;
 
                         if(thumb_ext == "jpg" || thumb_ext == "jpeg") {
                             thumb_ext = "JPEG";
@@ -134,8 +143,12 @@
                             thumb_ext = "PNG";
                         }
                         var item_thumb = new Image();
-                        item_thumb.src = itm.tbn;
-                        pressPDF.addImage(item_thumb, thumb_ext, baseX*2, desc_yDist, 80, 80);
+                        item_thumb.src = itm.tbn.url;
+                        try {
+                            pressPDF.addImage(item_thumb, thumb_ext, baseX*2, desc_yDist, 80, 80);
+                        } catch (err) {
+                            cl(err);
+                        }
 
                         desc_xDist = lMargin + (3*baseX);
                         desc_max_width = 410;
@@ -147,7 +160,7 @@
                     var extra_yDist = 0;
                     if(item_desc) {
                       if(itm.breaks && itm.breaks > 0) {
-                          if(itm.tmb) {
+                          if(itm.tbn) {
                               extra_yDist = itm.breaks * 30;
                           } else {
                               extra_yDist = itm.breaks * 20;
@@ -159,7 +172,7 @@
                     if(item_desc) {
                         var base_count = desc_yDist + desc_height + (baseX*2) + extra_yDist;
                     } else {
-                        if(itm.tmb) {
+                        if(itm.tbn) {
                             var base_count = desc_yDist + 80;
                         } else {
                             var base_count = desc_yDist;
@@ -179,12 +192,18 @@
                         base_count += base_top;
                     }
 
+                    var max = itm.inf.length;
                     for( idx in itm.inf ) {
-                        if(itm.inf[idx].meta) {
-
+                        if(itm.inf[idx] != 'null' && itm.inf[idx] !== null) {
                             if(base_count >= maxHeightOffset) {
                                 pressPDF.addPage();
                                 base_count = baseX;
+                            }
+
+                            var extra_line_height = 0;
+                            var val_height = itm.inf[idx].meta_breaks;
+                            if( val_height && $.isNumeric(val_height) ) {
+                                extra_line_height = 10 * val_height;
                             }
 
                             var extra_padding = 0;
@@ -193,23 +212,27 @@
                             }
                             pressPDF.setFontStyle('bold');
                             var p = base_count + 40;
-                            pressPDF.text( itm.inf[idx].meta, (baseX*2 + extra_padding) , p);
+                            var meta_title = itm.inf[idx].meta;
 
-                            var f = p + 15;
-                            var default_val = "--";
-                            pressPDF.setFontStyle('normal');
-                            
-                            if(itm.inf[idx].value) {                                
-                                default_val = itm.inf[idx].value;
+                            if(meta_title) {
+                                pressPDF.text( meta_title, (baseX*2 + extra_padding) , p);
+                                var f = p + 15;
+                                var default_val = "--";
+                                pressPDF.setFontStyle('normal');
+
+                                if(itm.inf[idx].value) {
+                                    default_val = itm.inf[idx].value;
+                                }
+                                pressPDF.text(default_val, (baseX*2 + extra_padding), f);
+                                base_count = p + extra_line_height;
                             }
-                            pressPDF.text(default_val, (baseX*2 + extra_padding), f);
-                            base_count = p;
                         }
                     }
 
                     pressPDF.save( itm.output + '.pdf');
                 }
 
+                hide_modal_main();
             });
         });
 

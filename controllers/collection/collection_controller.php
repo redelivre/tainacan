@@ -30,6 +30,7 @@ class CollectionController extends Controller {
             case "create":
                 return $collection_model->create();
             case 'simple_add':
+                
                 $data['collection_name'] = trim($data['collection_name']);
                 $data['collection_object'] = trim($data['collection_object']);
 
@@ -48,7 +49,7 @@ class CollectionController extends Controller {
                     __('signup','tainacan')
                 );
 
-                if (in_array($name_lower, $NotAllowed)) {
+                if (in_array($name_lower, $NotAllowed) || preg_match('/^oaipmh/', $name_lower)) {
                     header("location:" . get_permalink(get_option('collection_root_id')) . '?info_messages=' . __('This collection name is not allowed!', 'tainacan') . '&info_title=' . __('Attention', 'tainacan'));
                 } else {
                     if (empty($data['collection_name']) || empty($data['collection_object'])):
@@ -73,12 +74,6 @@ class CollectionController extends Controller {
                             if ($new_collection_id) {
                                 // $result = json_decode($this->insert_collection_event($new_collection_id, $data));
                                 return ( $this->insert_collection_event($new_collection_id, $data));
-
-                                if ($result->type == 'success') {
-                                    header("location:" . get_permalink($new_collection_id) . '?open_wizard=true');
-                                } else {
-                                    header("location:" . get_permalink(get_option('collection_root_id')) . '?info_messages=' . __('Collection sent for approval', 'tainacan') . '&info_title=' . __('Attention', 'tainacan'));
-                                }
                             } else {
                                 return ['error' => __('Error creating template collection', 'tainacan')];
                             }
@@ -105,7 +100,7 @@ class CollectionController extends Controller {
             case "delete":
                 return $collection_model->delete($data);
             case "list":
-                return $collection_model->list_collection();
+                return false;
             case "show_header":
                 $mycollections = $data['mycollections'];
                 $sharedcollections = $data['sharedcollections'];
@@ -216,6 +211,7 @@ class CollectionController extends Controller {
             case 'list_items_search_autocomplete':
                 $property_model = new PropertyModel;
                 $property = get_term_by('id', $data['property_id'], 'socialdb_property_type');
+                $data['term'] = trim($data['term']);
                 if ($property) {
                     if (in_array($property->slug, $property_model->fixed_slugs)) {
                         if ($property->slug === 'socialdb_property_fixed_title'):

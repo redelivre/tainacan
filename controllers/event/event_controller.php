@@ -31,21 +31,20 @@ require_once(dirname(__FILE__).'../../../models/event/event_tag/event_tag_create
 require_once(dirname(__FILE__).'../../../models/event/event_tag/event_tag_edit_model.php');
 require_once(dirname(__FILE__).'../../../models/event/event_tag/event_tag_delete_model.php');
 require_once(dirname(__FILE__).'../../../models/ranking/ranking_model.php');
+require_once(dirname(__FILE__).'../../../models/object/object_model.php');
 
  class EventController extends Controller{
-	 public function operation($operation,$data){
-             
-		switch ($operation) {
-      case "list":
-        $data = EventModel::list_events($data);
-        return $this->render(dirname(__FILE__).'../../../views/event/list.php', $data);
-        break;
-      case 'notification_events':
-        $data = EventModel::list_events($data);
-        if(isset($data['events_not_observed'])){
-          $not_observed_events = '&nbsp;'.count($data['events_not_observed']).'&nbsp;';
-        }
-        return $not_observed_events;
+	 public function operation($operation,$data) {
+         switch ($operation) {
+             case "list":
+                 $data = EventModel::list_events($data);
+                 return $this->render(dirname(__FILE__).'../../../views/event/list.php', $data);
+             case 'notification_events':
+                 $data = EventModel::list_events_notification($data);
+                 if(isset($data['events_not_observed'])){
+                     $not_observed_events = '&nbsp;'.count($data['events_not_observed']).'&nbsp;';
+                 }
+                 return $not_observed_events;
       case 'notification_events_repository':
         $data['collection_id'] = get_option('collection_root_id');
         $data = EventModel::list_events($data);
@@ -88,13 +87,37 @@ require_once(dirname(__FILE__).'../../../models/ranking/ranking_model.php');
         $event_object_create_model = new EventObjectCreateModel();
         return $event_object_create_model->verify_event($data);
       //object_delete
+      case 'save_reason_to_exclude':
+          $root_category = get_post_meta($data['collection_id'], 'socialdb_collection_object_type', true);
+          $properties = get_term_meta($root_category,'socialdb_category_property_id');
+          $properties = array_unique($properties);
+          
+          foreach ($properties as $property)
+          {
+              $property_name = get_term_by('id',$property,'socialdb_property_type')->name;
+              if($property_name == 'Cancelamento')
+              {
+                  $sub_property = intval(get_term_meta($property, 'socialdb_property_compounds_properties_id', true));
+
+                  $object_model = new ObjectModel();
+                  $inserted_ids[] = $object_model->add_value_compound($data['collection_id'], $property, $sub_property, 0, 0, $data['reason']);
+                  update_post_meta($data['elem_id'], 'socialdb_property_' . $property . '_0', implode(',', $inserted_ids));
+                  break;
+              }
+          }
+        break;
 
       case 'add_event_object_delete':
         $event_object_delete_model = new EventObjectDeleteModel();
         $logData = ['collection_id' => $data['socialdb_event_collection_id'],
           'item_id' => $data['socialdb_event_object_item_id'],
           'user_id' => $data['socialdb_event_user_id'], 'event_type' => 'user_items', 'event' => 'delete' ];
-        Log::addLog($logData);
+          
+          if(has_filter('tainacan_restore_descarted_item'))
+          {
+              apply_filters('tainacan_restore_descarted_item', $logData['item_id']);
+          }
+          Log::addLog($logData);
         return $event_object_delete_model->create_event($data);
       case 'socialdb_event_object_delete';
         $event_object_delete_model = new EventObjectDeleteModel();

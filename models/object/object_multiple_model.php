@@ -11,6 +11,12 @@ require_once(dirname(__FILE__) . '../../general/general_model.php');
 require_once(dirname(__FILE__) . '../../user/user_model.php');
 require_once(dirname(__FILE__) . '../../tag/tag_model.php');
 
+/*Extrator de texto PDF*/
+require_once (dirname(__FILE__) . '../../../libraries/php/PDFParser/vendor/autoload.php');
+
+/*Extrator de texto Office Documents*/
+require_once (dirname(__FILE__) . '../../../libraries/php/OfficeToPlainText/OfficeDocumentToPlainText.php');
+
 /**
  * The class ObjectModel 
  *
@@ -34,7 +40,8 @@ class ObjectMultipleModel extends Model {
 
       foreach ($items_id as $item_id) {
         $post_id = $this->insert_post($data,trim($item_id));
-        if($post_id) {
+        if($post_id)
+        {
           $this->vinculate_collection($data, $post_id);
           $this->item_resource($data, $item_id, $post_id);
           $this->item_attachments($data, $item_id, $post_id);
@@ -47,7 +54,9 @@ class ObjectMultipleModel extends Model {
           $result['ids'][] = $post_id;
           $col_id = $data['collection_id'];
           $user_id = get_current_user_id();
-          if ($user_id == 0) {
+
+          if ($user_id == 0)
+          {
             $user_id = get_option('anonimous_user');
           }
 
@@ -158,6 +167,7 @@ class ObjectMultipleModel extends Model {
       $result['title'] = __('No items inserted successfully!','tainacan');
       $result['type'] = 'error';
     }
+
     return json_encode($result);
   }
   /**
@@ -230,11 +240,41 @@ class ObjectMultipleModel extends Model {
      * @description - funcao que insere metadados essenciais do objeto como tipo,origem  
      * @author: Eduardo 
      */
-    public function item_resource($data,$item_id,$post_id) {
+    public function item_resource($data,$item_id,$post_id) 
+    {
         update_post_meta( $post_id, 'socialdb_object_from', 'internal');
         update_post_meta( $post_id, 'socialdb_object_dc_source', $data['source_'.$item_id]);
         update_post_meta( $post_id, 'socialdb_object_content', $item_id);
         update_post_meta( $post_id, 'socialdb_object_dc_type', $data['type_'.$item_id]);
+
+        if(strcmp($data['type_'.$item_id],'pdf') == 0)
+        {
+            $url_file = wp_get_attachment_url($item_id);
+
+            try
+            {
+                $parser = new \Smalot\PdfParser\Parser();
+                $pdf = $parser->parseFile($url_file);
+                $pdf_text = $pdf->getText();
+                error_reporting(1);
+                
+                $this->set_common_field_values($post_id, "socialdb_property_$item_id", $pdf_text);
+            }catch (Exception $e)
+            {
+                //Can't read PDF file, just move on.
+            }
+        }else if(strcmp($data['type_'.$item_id], 'office') == 0)
+        {
+            $file_path = get_attached_file($item_id);
+            
+            $reader = new OfficeDocumentToPlainText($file_path);
+            $document_text = $reader->getDocumentText();
+            if($document_text)
+            {
+                $this->set_common_field_values($post_id, "socialdb_property_$item_id", $document_text);
+            }
+        }
+        
         $this->set_common_field_values($post_id, 'object_from', 'internal');
         $this->set_common_field_values($post_id, 'object_source', $data['source_'.$item_id]);
         $this->set_common_field_values($post_id, 'object_type', $data['object_type']);
@@ -271,6 +311,54 @@ class ObjectMultipleModel extends Model {
             }
         }
 
+        //PDF Thumbnail
+        if(strcmp($data['type_'.$item_id], 'pdf') == 0)
+        {
+            $upload_dir = wp_upload_dir();
+
+            $upload_path = str_replace( '/', DIRECTORY_SEPARATOR, $upload_dir['path'] ) . DIRECTORY_SEPARATOR;
+            $image = base64_decode(preg_replace('#^data:image/\w+;base64,#i', '', $data['pdf_thumbnail_'.$item_id]));
+            $filename = 'pdf_thumb_'.$item_id.'.png';
+
+            $hashed_filename = md5( $filename . microtime() ) . '_' . $filename;
+
+            // @new
+            $image_upload = file_put_contents( $upload_path . $hashed_filename, $image );
+
+            //HANDLE UPLOADED FILE
+            if( !function_exists( 'wp_handle_sideload' ) ) {
+                require_once( ABSPATH . 'wp-admin/includes/file.php' );
+            }
+
+            // Without that I'm getting a debug error!?
+            if( !function_exists( 'wp_get_current_user' ) ) {
+                require_once( ABSPATH . 'wp-includes/pluggable.php' );
+            }
+
+            $file             = array();
+            $file['error']    = '';
+            $file['tmp_name'] = $upload_path . $hashed_filename;
+            $file['name']     = $hashed_filename;
+            $file['type']     = 'image/png';
+            $file['size']     = filesize( $upload_path . $hashed_filename );
+
+            // upload file to server
+            // @new use $file instead of $image_upload
+            $file_return = wp_handle_sideload( $file, array( 'test_form' => false ) );
+
+            $filename = $file_return['file'];
+            $attachment = array(
+                'post_mime_type' => $file_return['type'],
+                'post_title' => preg_replace('/\.[^.]+$/', '', basename($filename)),
+                'post_content' => '',
+                'post_status' => 'inherit',
+                'guid' => $upload_dir['url'] . '/' . basename($filename)
+            );
+            $attach_id = wp_insert_attachment( $attachment, $filename );
+
+            set_post_thumbnail($post_id, $attach_id);
+
+        }
     }
     /**
      * @signature - item_tags($data)
@@ -490,17 +578,41 @@ class ObjectMultipleModel extends Model {
                      $object = array(
                          'ID' => $post_id,
                          'post_title' => $data['title_'.$item_id],
-                         'post_status' => (isset($data['edit_multiple'])) ? 'published' :'inherit',
+                         'post_status' => (isset($data['edit_multiple'])) ? 'publish' :'inherit',
                          'post_content' => $data['description_'.$item_id],
                          'post_parent' => $col_id
                     );
                     delete_user_meta(get_current_user_id(), 'socialdb_collection_'.$col_id.'_betafile', $post_id);
-                    //wp_update_post($object);
-                    if(!isset($data['edit_multiple'])){
+                    wp_update_post($object);
+
+                    if(!isset($data['edit_multiple']))
+                    {
                         $this->insert_object_event($post_id, ['collection_id' => $col_id ]);
                     }
+
+                    /* Getting PDF text */
+                    $extension = end(explode(".", $data["source_$item_id"]));
+                    if(strcmp($extension,'pdf') == 0)
+                    {
+                        $url_file = $data["source_$item_id"];
+
+                        try
+                        {
+                            $parser = new \Smalot\PdfParser\Parser();
+                            $pdf = $parser->parseFile($url_file);
+                            $pdf_text = $pdf->getText();
+
+                            $this->set_common_field_values($post_id, "socialdb_property_$item_id", $pdf_text);
+                        }catch (Exception $e)
+                        {
+                            //Can't read PDF file, just move on.
+                        }
+                    }
+                    /* Getting PDF text */
+
                     $this->set_common_field_values($post_id, 'title', $object['post_title']);
                     $this->set_common_field_values($post_id, 'description', $object['post_content']);
+
                     if($post_id){
                         if(!isset($data['edit_multiple'])){
                             $this->vinculate_collection($data, $post_id);
@@ -563,6 +675,7 @@ class ObjectMultipleModel extends Model {
             $result['title'] = __('No items inserted successfully!','tainacan');
             $result['type'] = 'error';
         }
+
         return json_encode($result);
     }
     

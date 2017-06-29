@@ -57,26 +57,28 @@ class ViewHelper {
     }
 
     public function renderRepositoryLogo($_logo_id, $fallback_title) {
-        $_max_img_width = "140px";
+        $_max_img_width = "100%";
+        $_max_img_height = "100%";
+
         if( isset($_logo_id) && get_the_post_thumbnail($_logo_id, 'thumbnail')) {
             $extraClass = "repository-logo";
 
             if (get_the_post_thumbnail($_logo_id, 'thumbnail')) {
               $_img_url = wp_get_attachment_url(get_post_thumbnail_id($_logo_id));
-              $ret = '<img src="' . $_img_url . '" style="max-width: '. $_max_img_width .'" />';
+              $ret = '<img src="' . $_img_url . '" style="max-width: '. $_max_img_width .'; max-height: '. $_max_img_height .';" />';
             } else {
               $ret = empty($fallback_title) ? __('Tainacan', 'tainacan') : $fallback_title;
             }
         } else {
             $extraClass = "logo-tainacan";
-            $ret = '<img src="'. get_template_directory_uri() . '/libraries/images/Tainacan_pb.svg'.'" width="'. $_max_img_width .'"/>';
+            $ret = '<img src="'. get_template_directory_uri() . '/libraries/images/Tainacan_pb.svg'.'" style="max-width: '. $_max_img_width .'; max-height: '. $_max_img_height .';"/>';
         }
 
       return "<a class='col-md-3 navbar-brand $extraClass' href='" . site_url() . "'>" . $ret . "</a>";
     }
 
     public function get_metadata_types() {
-        return $this->metadata_types = [
+        $this->metadata_types = [
             'text' => __('Text', 'tainacan'),
             'textarea' => __('Long text', 'tainacan'),
             'date' => __('Date', 'tainacan'),
@@ -87,6 +89,13 @@ class ViewHelper {
             'voting' => __('Rankings', 'tainacan'),
             'metadata_compound' => __('Compounds', 'tainacan'),
         ];
+
+        if(has_action("add_new_user_properties"))
+        {
+            $this->metadata_types['user'] = __('User', 'tainacan');
+        }
+
+        return $this->metadata_types;
     }
 
     public function get_property_data_types() {
@@ -145,7 +154,7 @@ class ViewHelper {
     }
 
     public function get_special_metadata() {
-        return $this->special_metadata = ['relationship', 'category', 'voting','compounds','metadata_compound'];
+        return $this->special_metadata = ['relationship', 'category', 'voting','compounds','metadata_compound', 'user'];
     }
 
     public function get_metadata_icon($metadata_type) {
@@ -330,11 +339,11 @@ class ViewHelper {
 
     <?php }
 
-    public static function render_config_title($title) {
+    public static function render_config_title($title,$has_link = false) {
         $onclick = 'backToMainPage();';
         $onclick = "backRoute($('#slug_collection').val());";
         echo "<h3 class='topo'> $title ";
-        self::buttonVoltar();
+        self::buttonVoltar((__("Events", 'tainacan') == $title) ? $has_link : false);
         echo  "</h3><hr>";
     }
 
@@ -393,6 +402,32 @@ class ViewHelper {
             } else {
                 return false;
             }
+        }
+    }
+    
+    /**
+     * function get_collection_by_category_root($user_id)
+     * @param int a categoria raiz de uma colecao
+     * @return array(wp_post) a colecao de onde pertence a categoria root
+     * @ metodo responsavel em retornar as colecoes de um determinando usuario
+     * @author: Eduardo Humberto 
+     */
+    public function get_collection_by_category_root($category_root_id) {
+        global $wpdb;
+        $wp_posts = $wpdb->prefix . "posts";
+        $wp_postmeta = $wpdb->prefix . "postmeta";
+        $query = "
+                    SELECT p.* FROM $wp_posts p
+                    INNER JOIN $wp_postmeta pm ON p.ID = pm.post_id    
+                    WHERE pm.meta_key LIKE 'socialdb_collection_object_type' and pm.meta_value like '$category_root_id'
+            ";
+        $result = $wpdb->get_results($query);
+
+
+        if ($result && is_array($result) && count($result) > 0) {
+            return $result;
+        } else {
+            return array();
         }
     }
     
@@ -462,11 +497,17 @@ class ViewHelper {
         }
     }
     
-    public static function buttonVoltar(){
-        ?>
-        <!--button onclick="backToMainPage();" class="btn btn-default pull-right"><?php _e('Back to collection', 'tainacan') ?></button-->
-        <button onclick="backRoute($('#slug_collection').val());" id="btn_back_collection" class="btn btn-default pull-right"><?php _e('Back to collection','tainacan') ?></button>
-        <?php
+    public static function buttonVoltar($redirect = false){
+        if($redirect){ ?>
+            <!--button onclick="backToMainPage();" class="btn btn-default pull-right"><?php _e('Back to collection', 'tainacan') ?></button-->
+            <button onclick="window.location = '<?php echo $redirect ?>'" id="btn_back_collection" class="btn btn-default pull-right"><?php _e('Back to collection','tainacan') ?></button>
+            <?php
+        }else{
+            ?>
+            <!--button onclick="backToMainPage();" class="btn btn-default pull-right"><?php _e('Back to collection', 'tainacan') ?></button-->
+            <button onclick="backRoute($('#slug_collection').val());" id="btn_back_collection" class="btn btn-default pull-right"><?php _e('Back to collection','tainacan') ?></button>
+            <?php
+        }
     }
     
     /**
@@ -521,13 +562,18 @@ class ViewHelper {
                        if(json.properties.length==0){
                             $('#properties_target').html('<center><?php _e('No properties found','tainacan') ?>!</center>');
                        }else{
+                            var is_checked_title = '';
+                            if($('#properties_to_search_in').val().split(',').indexOf(json.title.id.toString())>=0){
+                                is_checked_title = 'checked="checked"'
+                            }
+                            $('#properties_target').append('<input type="checkbox" '+is_checked_title+' value="'+json.title.id+'" onchange="setValuesTargetProperties()" class="target_values">&nbsp;'+json.title.labels.join('/')+'<br>');
                             $.each(json.properties,function(index,property){
                                 var is_checked = '';
-                                console.log($('#properties_to_search_in').val().split(',').indexOf(property.id),$('#properties_to_search_in').val().split(','),property.id);
+                                //console.log($('#properties_to_search_in').val().split(',').indexOf(property.id),$('#properties_to_search_in').val().split(','),property.id);
                                 if($('#properties_to_search_in').val().split(',').indexOf(property.id.toString())>=0){
                                     is_checked = 'checked="checked"'
                                 }
-                                $('#properties_target').append('<input type="checkbox" '+is_checked+' value="'+property.id+'" onchange="setValuesTargetProperties()" class="target_values">&nbsp;'+property.name+' ('+property.type+')<br>')
+                                $('#properties_target').append('<input type="checkbox" '+is_checked+' value="'+property.id+'" onchange="setValuesTargetProperties()" class="target_values">&nbsp;'+property.name+' ('+property.type+')<br>');
                             })
                        }
                    });

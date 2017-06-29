@@ -96,6 +96,17 @@
             });
             e.preventDefault();
         });
+
+        $(".sort_list").on('click', function() {
+            var action = $(this).attr("id");
+            $(".sort_list").css('background', 'white');
+            $(this).css('background', 'buttonface');
+            change_ordenation(action);
+        });
+    });
+    
+    $(document).ready(function() {
+        document.title = '<?php echo html_entity_decode(get_the_title()) ?>';
     });
     //search repeated items
     function clear_repeated_values(main_value,classes){
@@ -862,6 +873,10 @@
                 $('#collection_empty').show();
                 $('#items_not_found').hide();
             }
+            var curr_viewMode = $("#collection_single_ordenation").attr('data-viewMode');
+            if (curr_viewMode) {
+                changeViewMode(curr_viewMode);
+            }
             setMenuContainerHeight();
         });
     }
@@ -885,6 +900,10 @@
             if (elem.empty_collection) {
                 $('#collection_empty').show();
                 $('#items_not_found').hide();
+            }
+            var curr_viewMode = $("#collection_single_ordenation").attr('data-viewMode');
+            if (curr_viewMode) {
+                changeViewMode(curr_viewMode);
             }
 
             setMenuContainerHeight();
@@ -912,6 +931,10 @@
                 $('#items_not_found').hide();
             }
             setMenuContainerHeight();
+             var curr_viewMode = $("#collection_single_ordenation").attr('data-viewMode');
+            if (curr_viewMode) {
+                changeViewMode(curr_viewMode);
+            }
         });
     }
 
@@ -938,6 +961,10 @@
                 $('#items_not_found').hide();
             }
             setMenuContainerHeight();
+             var curr_viewMode = $("#collection_single_ordenation").attr('data-viewMode');
+            if (curr_viewMode) {
+                changeViewMode(curr_viewMode);
+            }
         });
     }
 
@@ -994,6 +1021,10 @@
                 $('#collection_empty').show();
                 $('#items_not_found').hide();
             }
+            var curr_viewMode = $("#collection_single_ordenation").attr('data-viewMode');
+            if (curr_viewMode) {
+                changeViewMode(curr_viewMode);
+            }
             setMenuContainerHeight();
         });
     }
@@ -1019,6 +1050,10 @@
                 if (elem.empty_collection) {
                     $('#collection_empty').show();
                     $('#items_not_found').hide();
+                }
+                var curr_viewMode = $("#collection_single_ordenation").attr('data-viewMode');
+                if (curr_viewMode) {
+                    changeViewMode(curr_viewMode);
                 }
                 setMenuContainerHeight();
             });
@@ -1096,17 +1131,30 @@
                 $('#collection_empty').show();
                 $('#items_not_found').hide();
             }
+            if(!elem.has_post && $("#collection_id").val() ===  $("#collection_root_id").val()){
+                search_items_query = $('#wp_query_args').val();
+                search_collections_query = $('#wp_query_args').val();
+               $('#click_ad_search_items').trigger('click');
+            }else{
+               search_collections_query = $('#wp_query_args').val();
+            }
             setMenuContainerHeight();
+            var curr_viewMode = $("#collection_single_ordenation").attr('data-viewMode');
+            if (curr_viewMode) {
+                changeViewMode(curr_viewMode);
+            }
         });
     }
 
-    function wpquery_page(value, collection_viewMode) {
+    function wpquery_page(value, collection_viewMode, is_trash) {
         $('#list').hide();
         $('#loader_objects').show();
+        var src =  "'"+$('#src').val()+"'";
         $.ajax({
             type: "POST",
             url: $('#src').val() + "/controllers/wp_query/wp_query_controller.php",
-            data: {operation: 'wpquery_page', wp_query_args: $('#wp_query_args').val(),posts_per_page:$('.col-items-per-page').val(), value: value, collection_id: $('#collection_id').val()}
+            data: { operation: 'wpquery_page', wp_query_args: $('#wp_query_args').val(), value: value,
+                posts_per_page: $('.col-items-per-page').val(), collection_id: $('#collection_id').val(), is_trash: is_trash}
         }).done(function (result) {
             elem = jQuery.parseJSON(result);
             $('#loader_objects').hide();
@@ -1119,6 +1167,28 @@
             }
             if (collection_viewMode) {
                 changeViewMode(collection_viewMode);
+            }
+
+            if(is_trash) {
+                <?php if(!apply_filters('tainacan_show_restore_options', get_the_ID())): ?>
+                        $('#table-view tr').each(function(num, item) {
+                            var curr_id = $(item).find('td').first().find('a').attr('data-id');
+                            $(item).find('td').last().html('<li> <a onclick="showSingleObject(' + curr_id + ','+src+','+is_trash+')"> <span class="glyphicon glyphicon-eye-open"></span> </a></li>');     
+                        });
+                         $('li.item-redesocial').hide();
+                         $('ul.item-menu-container').hide();
+                        $('.item-colecao').each(function(num, item) {
+                              var curr_id = $(this).find('.post_id').last().val();
+                              $(this).find('.item-funcs').last().append('<li style="float: right; margin-left: 10px;"> <a onclick="showSingleObject(' + curr_id + ','+src+','+is_trash+')"> <span class="glyphicon glyphicon-eye-open"></span> </a></li>');
+                        });
+                 <?php else:  ?>     
+                        $('li.item-redesocial').hide();
+                        $('ul.item-menu-container').hide();
+                        $('#table-view tr').each(function(num, item) {
+                            var curr_id = $(item).find('td').first().find('a').attr('data-id');  
+                             $(item).find('td').last().html('<li> <a onclick="delete_permanently_object(\'Deletar Item\', \'Deletar este item permanentemente?\', ' + curr_id + ')" class="remove"> <span class="glyphicon glyphicon-trash"></span> </a> </li><li> <a onclick="restore_object(' + curr_id + ')"> <span class="glyphicon glyphicon-retweet"></span> </a></li>');
+                        });
+                <?php endif; ?> 
             }
 
             setMenuContainerHeight();
@@ -1208,7 +1278,13 @@
             $('#list').html(elem.page);
             $('#wp_query_args').val(elem.args);
             if (type && type == 'socialdb_collection') {
-                search_collections_query = $('#wp_query_args').val();
+                if(!elem.has_post && $("#collection_id").val() ===  $("#collection_root_id").val()){
+                    search_items_query = $('#wp_query_args').val();
+                    search_collections_query = $('#wp_query_args').val();
+                   $('#click_ad_search_items').trigger('click');
+                }else{
+                   search_collections_query = $('#wp_query_args').val();
+                }
             } else if (type && type == 'socialdb_object') {
                 search_items_query = $('#wp_query_args').val();
             }
@@ -1633,6 +1709,7 @@
                                     else {
                                         var any_file_type = validateAnyFile();
                                         if (any_file_type) {
+                                            
                                             // É uma URL de um arquivo. Executar a importação deste arquivo.
                                             show_modal_main();
                                             //showFormCreateURLFile($('#item_url_import_all').val(), any_file_type);

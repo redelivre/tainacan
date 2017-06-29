@@ -12,12 +12,16 @@ while (have_posts()) : the_post();
     }
 endwhile;
 ///****************************** EXECUTANDO SCRIPTS AVULSOS *********************/
-if (isset($_GET['execute-script'])):
+if(!get_option('tainacan_update_items_helpers')){
+    //HelpersController::execute_script('0003', ['collection_id' => 'all']);
+}else if (isset($_GET['execute-script'])):
     error_reporting(E_ALL);
-    if ($_GET['execute-script'] == '0002') {
-        HelpersController::execute_script('0002', [ 'collection_id' => 'all']);
+    if ($_GET['execute-script'] == '0003') {
+      //  HelpersController::execute_script('0003', ['collection_id' => 'all']);
+    } else if ($_GET['execute-script'] == '0002') {
+        HelpersController::execute_script('0002', ['collection_id' => 'all']);
     } else if ($_GET['execute-script'] == '0001') {
-        HelpersController::execute_script('0001', [ 'collection_id' => get_the_ID()]);
+        HelpersController::execute_script('0001', ['collection_id' => get_the_ID()]);
     }
 
     wp_redirect(get_the_permalink());
@@ -35,11 +39,11 @@ $_enable_header_ = get_post_meta($_currentID_, 'socialdb_collection_show_header'
 $_color_scheme = ViewHelper::getCollectionColors($_currentID_);
 $search_color = ($_color_scheme) ? $_color_scheme["primary"] : "#79a6ce";
 
-if ( !has_nav_menu('menu-ibram') ):
+if (!has_nav_menu('menu-ibram')):
     $_r_bg = repository_bg($col_root_id);
-?>
+    ?>
     <div id="main_part_collection" class="collection_repo_config" 
-            style="background: url(<?php echo $_r_bg; ?>); display: none; margin-top: 50px;">
+         style="background: url(<?php echo $_r_bg; ?>); display: none; margin-top: 50px;">
         <div class="row container-fluid">
             <div class="project-info">
                 <center>
@@ -50,9 +54,10 @@ if ( !has_nav_menu('menu-ibram') ):
             <?php include_once "views/collection/collec_share.php"; ?>
         </div>
     </div>
-<?php else:
+    <?php
+else:
     echo '<input type="hidden" name="ibram_menu" value="ibram_menu_activated" />';
-?>
+    ?>
     <style type="text/css"> .ibram-header {  margin-top: 50px; } </style>
 <?php
 endif;
@@ -64,8 +69,10 @@ while (have_posts()) : the_post();
     ?>
     <!-- TAINACAN: div necessaria para procedimentos do facebook  -->
     <div id="fb-root"></div>
+
     <!-- TAINACAN: esta div (AJAX) mostra o painel da colecao e suas acoes, estilos inline para descer a div apenas pois estava sob o header  -->
     <div id="collection_post" style="margin-top: 50px;"> </div>
+
     <!-- TAINACAN - BEGIN: ITENS NECESSARIOS PARA EXECUCAO DE VARIAS PARTES DO SOCIALDB -->
     <input type="hidden" id="visualization_page_category" name="visualization_page_category" value="<?php echo (!$visualization_page_category || $visualization_page_category === 'right_button') ? 'right_button' : 'click'; ?>">
     <input type="hidden" id="show_collection_default" name="show_collection_default" value="<?php echo (!$collection_default || $collection_default === 'false') ? 'show' : 'hide'; ?>">
@@ -85,85 +92,100 @@ while (have_posts()) : the_post();
         echo $_GET['search'];
     }
     ?>">
+
     <!-- Hidden para verificar se existe filtros via url -->
     <input type="hidden" id="is_filter" name="is_filter" value="<?php
     if (isset($_GET['is_filter'])) {
         echo $_GET['is_filter'];
     }
     ?>">
+
     <!-- Hidden para recuperacao de senha -->
     <input type="hidden" id="recovery_password" name="recovery_password" value="<?php
     if ($_GET['recovery_password']) {
         echo (int) base64_decode($_GET['recovery_password']);
     }
     ?>">
+
     <!-- Minhas colecoes -->
     <input type="hidden" id="mycollections" name="mycollections" value="<?php
     if (isset($_GET['mycollections'])) {
         echo 'true';
     }
     ?>">
+
     <!-- Colecoes compartilhadas -->
     <input type="hidden" id="sharedcollections" name="sharedcollections" value="<?php
     if (isset($_GET['sharedcollections'])) {
         echo 'true';
     }
     ?>">
+
     <!-- PAGINA DO ITEM -->
     <input type="hidden" id="object_page" name="object_page" value="<?php
     if (get_query_var('item') && !get_query_var('edit-item')) {
         echo trim(get_query_var('item'));
     }
     ?>">
+
     <!-- PAGINA DA CATEGORIA -->
     <input type="hidden" id="category_page" name="category_page" value="<?php
     if (isset($_GET['category'])) {
         echo trim($_GET['category']);
     }
     ?>">
+
     <!-- PAGINA DA PROPRIEDADE -->
     <input type="hidden" id="property_page" name="property_page" value="<?php
     if (isset($_GET['property'])) {
         echo trim($_GET['property']);
     }
     ?>">
+
     <!-- PAGINA DA TAG -->
     <input type="hidden" id="tag_page" name="tag_page" value="<?php
     if (isset($_GET['tag'])) {
         echo trim($_GET['tag']);
     }
     ?>">
+
     <input type="hidden" id="info_messages" name="info_messages" value="<?php
     if (isset($_GET['info_messages'])) {
         echo $_GET['info_messages'];
     }
     ?>">
+
     <input type="hidden" id="info_title" name="info_title" value="<?php
     if (isset($_GET['info_title'])) {
         echo $_GET['info_title'];
     }
     ?>">
+
     <input type="hidden" id="open_wizard" name="open_wizard" value="<?php
     if (isset($_GET['open_wizard'])) {
         echo $_GET['open_wizard'];
     }
     ?>">
+
     <!-- Se devera abrir o formulario de adicao item -->
     <input type="hidden" id="open_create_item_text" name="open_create_item_text" value="<?php
     if (isset($_GET['create-item'])) {
         echo $_GET['create-item'];
     }
     ?>">
+
     <input type="hidden" id="open_login" name="open_login" value="<?php
     if (isset($_GET['open_login'])) {
         echo $_GET['open_login'];
     }
     ?>">
+
     <input type="hidden" id="open_edit_item" name="open_edit_item" value="<?php
     if (isset($_GET['open_edit_item'])) {
         echo $_GET['open_edit_item'];
     }
     ?>">
+
     <input type="hidden" id="instagramInsertedIds" name="instagramInsertedIds" value="<?php
     if (isset($_SESSION['instagramInsertedIds'])) {
         if ($_SESSION['instagramInsertedIds'] != 'instagram_error') {
@@ -176,6 +198,7 @@ while (have_posts()) : the_post();
         echo 'false';
     }
     ?>">
+
     <input type="hidden" id="facebookInsertedIds" name="facebookInsertedIds" value="<?php
     if (isset($_SESSION['facebookInsertedIds'])) {
         if ($_SESSION['facebookInsertedIds'] != 'facebook_error') {
@@ -188,12 +211,14 @@ while (have_posts()) : the_post();
         echo 'false';
     }
     ?>">
+
     <input type="hidden" id="wp_query_args" name="wp_query_args" value=""> <!-- utilizado na busca -->
     <input type="hidden" id="change_collection_images" name="change_collection_images" value="">
     <input type="hidden" id="value_search" name="value_search" value=""> <!-- utilizado na busca -->
     <input type="hidden" id="flag_dynatree_ajax" name="flag_dynatree_ajax" value="true"> <!-- utilizado na busca -->
     <input type="hidden" id="global_tag_id" name="global_tag_id" value="<?php echo (get_term_by('slug', 'socialdb_property_fixed_tags', 'socialdb_property_type')->term_id) ? get_term_by('slug', 'socialdb_property_fixed_tags', 'socialdb_property_type')->term_id : 'tag' ?>"> <!-- utilizado na busca -->
-    <input type="hidden" id="search-advanced-text" value="<?php echo (isset($_GET['search-advanced-text']) && !empty($_GET['search-advanced-text'])) ?  $_GET['search-advanced-text'] : '' ?>">
+    <input type="hidden" id="search-advanced-text" value="<?php echo (isset($_GET['search-advanced-text']) && !empty($_GET['search-advanced-text'])) ? $_GET['search-advanced-text'] : '' ?>">
+
     <!-- TAINACAN - END: ITENS NECESSARIOS PARA EXECUCAO DE VARIAS PARTES DO SOCIALDB -->
 
     <!-- TAINACAN: esta div central que agrupa todos os locais para widgets e a listagem de objeto -->
@@ -246,7 +271,7 @@ while (have_posts()) : the_post();
                                 </div>
                                 <div class="col-md-12 no-padding">
                                     <!--button style="margin-top:5px;" class="btn btn-default btn-xs pull-right" onclick="showAdvancedSearch('<?php echo get_template_directory_uri() ?>');">
-                                        <?php _e('Advanced Search', 'tainacan'); ?>
+                                    <?php _e('Advanced Search', 'tainacan'); ?>
                                     </button-->
                                     <a style="margin-top:5px;cursor:pointer;" class="pull-right" onclick="slideFormAdvancedDown()">
                                         <?php _e('Advanced Search', 'tainacan'); ?>
@@ -282,58 +307,70 @@ while (have_posts()) : the_post();
                         <!-- TAINACAN: esta div estao o botao que abre o formulario completo para submissao de itens, botao para ordenacao asc e desc, e o selectbox para selecionar a ordenacao  - col-md-6 (bootstrap) -->
                         <div class="col-md-12 header-colecao">
                             <div class="row">
+                                <?php $_add_opts = unserialize(get_post_meta($_currentID_, 'socialdb_collection_add_item', true)); ?>
                                 <?php if (get_option('collection_root_id') != get_the_ID() && (is_user_logged_in() && verify_allowed_action(get_the_ID(), 'socialdb_collection_permission_create_object'))): ?>
-                                <div class="tainacan-add-item col-md-1 no-padding" <?php if (has_filter('show_custom_add_item_button')): ?> style="margin-right:50px;"  <?php endif; ?> >
-                                        <?php
-                                        if (has_filter('show_custom_add_item_button')):
-                                            echo apply_filters('show_custom_add_item_button', '');
-                                        elseif (has_action('addLibraryMenu')):
-                                            $collection_id = get_the_ID();
-                                            do_action('addLibraryMenu', $collection_id);
-                                        else:
-                                            $_add_opts = unserialize(get_post_meta($_currentID_, 'socialdb_collection_add_item', true));
-                                            $_add_modes = [
-                                                'write_text' => ['label' => _t('Write text'), 'action' => "showAddItemText()"],
-                                                'send_file' => ['label' => _t('Send file(s)'), 'action' => "showViewMultipleItems()"],
-                                                'send_file_zip' => ['label' => _t('Send file(s) via zip'), 'action' => "showSendFilesZip()"],
-                                                'insert_url' => ['label' => _t('Insert URL'), 'action' => "showAddItemURL()"]
-                                            ];
-                                            $add_item_str = '<button type="button" class="btn btn-primary dropdown-toggle sec-color-bg" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">';
-                                            $add_item_str .= __('Add', 'tainacan') . ' <span class="caret"></span>';
-                                            $add_item_str .= ' </button>';
-                                            $hideStr = "";
-                                            if( is_array($_add_opts) && (count($_add_opts) === 1) ) {
-                                                $hideStr = "style='display:none'";
-                                                $temp = _t('Add');
-                                                $add_item_str  = '<a href="javascript:void(0)" style="color: white; width: 100%;" class="btn"';
-                                                $add_item_str .= 'onclick="' . $_add_modes[$_add_opts[0]]['action'] . '">' . $temp . '</a>';
-                                            }
-                                            ?>
+                                    <div class="tainacan-add-item col-md-1 no-padding"
+                                         <?php if (has_filter('show_custom_add_item_button')): ?> style="margin-right:50px;" <?php endif; ?>
+                                         <?php if (is_null($_add_opts) && count($_add_opts) == 0): ?> style="display: none" <?php endif; ?> >
+                                         <?php
+                                         if (has_filter('show_custom_add_item_button')):
+                                             echo apply_filters('show_custom_add_item_button', '');
+                                         elseif (has_action('addLibraryMenu')):
+                                             $collection_id = get_the_ID();
+                                             do_action('addLibraryMenu', $collection_id);
+                                         else:
+                                             $_add_modes = [
+                                                 'write_text' => ['label' => _t('Write text'), 'action' => "showAddItemText()"],
+                                                 'send_file' => ['label' => _t('Send file(s)'), 'action' => "showViewMultipleItems()"],
+                                                 'send_file_zip' => ['label' => _t('Send file(s) via zip'), 'action' => "showSendFilesZip()"],
+                                                 'insert_url' => ['label' => _t('Insert URL'), 'action' => "showAddItemURL()"]
+                                             ];
+                                             $add_item_str = '<button type="button" class="btn btn-primary dropdown-toggle sec-color-bg" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">';
+                                             $add_item_str .= __('Add', 'tainacan') . ' <span class="caret"></span>';
+                                             $add_item_str .= ' </button>';
+                                             $hideStr = "";
+                                             if (is_array($_add_opts) && (count($_add_opts) === 1)) {
+                                                 $hideStr = "style='display:none'";
+                                                 $temp = _t('Add');
+                                                 //$add_item_str = '<a href="javascript:void(0)" style="color: white; width: 100%;" class="btn"';
+                                                 //$add_item_str .= 'onclick="' . $_add_modes[$_add_opts[0]]['action'] . '">' . $temp . '</a>';
+                                                 $add_item_str = '<a href="'. get_the_permalink($collection_id).'criar-item" style="color: white; width: 100%;" class="btn"';
+                                                 $add_item_str .= '>' . $temp . '</a>';
+                                             }
+                                             ?>
 
                                             <div class="btn-group" role="group" aria-label="...">
                                                 <div class="btn-group tainacan-add-wrapper">
 
-                                                        <?php echo $add_item_str ?>
+                                                    <?php echo $add_item_str ?>
 
                                                     <ul class="dropdown-menu" <?php echo $hideStr; ?> >
-                                                        <?php if(false === is_array($_add_opts)) { ?>
-                                                            <li><a onclick="showAddItemText()"> <?php _e('Write text', 'tainacan') ?> </a> </li>
+                                                        <?php if (false === is_array($_add_opts)) { ?>
+                                                            <!--li><a onclick="showAddItemText()"> <?php _e('Write text', 'tainacan') ?> </a> </li-->
+                                                            <li><a href="<?php echo get_the_permalink($collection_id).'criar-item'; ?>"> <?php _e('Write text', 'tainacan') ?> </a> </li>
                                                             <li><a onclick="showViewMultipleItems()"> <?php _e('Send file(s)', 'tainacan') ?>  </a> </li>
                                                             <li><a onclick="showSendFilesZip()"> <?php _e('Send file(s) via zip', 'tainacan') ?>  </a> </li>
                                                             <li><a onclick="showAddItemURL();"> <?php _e('Insert URL', 'tainacan') ?> </a> </li>
-                                                        <?php } else if ( is_array($_add_opts) ) {
-                                                            if(count($_add_opts) > 0) {
+                                                            <?php
+                                                        } else if (is_array($_add_opts)) {
+                                                            if (count($_add_opts) > 0) {
                                                                 foreach ($_add_modes as $_mode => $_item) {
-                                                                    if( in_array($_mode, $_add_opts) ) { ?>
+                                                                    if (in_array($_mode, $_add_opts)) {
+                                                                        if($_item['action'] !== 'showAddItemText()'){
+                                                                        ?>
                                                                         <li>
                                                                             <a href="javascript:void(0)" onclick="<?php echo $_item['action']; ?>"
                                                                                class="add_<?php echo $_mode ?>"> <?php echo $_item['label'] ?> </a>
                                                                         </li>
                                                                         <?php
+                                                                        }else{
+                                                                            echo '<li><a class="add_'.$_mode .'"  href="'.get_the_permalink($collection_id).'criar-item">' . __('Write text', 'tainacan') . '</a></li>';
+                                                                        }
                                                                     }
                                                                 }
                                                             } else {
-                                                                echo '<li><a onclick="showAddItemText()">' . _e('Write text', 'tainacan') . '</a></li>';
+                                                                //echo '<li><a onclick="showAddItemText()">' . _e('Write text', 'tainacan') . '</a></li>';
+                                                                echo '<li><a href="'.get_the_permalink($collection_id).'criar-item">' . __('Write text', 'tainacan') . '</a></li>';
                                                             }
                                                         }
                                                         ?>
@@ -350,11 +387,14 @@ while (have_posts()) : the_post();
                                         <option value=""><?php _e('Sorted by', 'tainacan') ?></option>
                                     </select>
 
-                                    <button onclick="change_ordenation('asc')" type="button" id="sort_list" class="btn btn-default pull-right"><span class="glyphicon glyphicon-sort-by-attributes"></span></button>
-                                    <button onclick="change_ordenation('desc')" type="button" id="sort_list" class="btn btn-default pull-right"><span class="glyphicon glyphicon-sort-by-attributes-alt"></span></button>
+                                    <button type="button" id="asc" class="btn btn-default pull-right sort_list"><span class="glyphicon glyphicon-sort-by-attributes"></span></button>
+                                    <button type="button" id="desc" class="btn btn-default pull-right sort_list"><span class="glyphicon glyphicon-sort-by-attributes-alt"></span></button>
                                 </div>
 
-                                <div class="col-md-2 no-padding viewMode-control">
+                                <?php
+                                $HideFromPlugin = (has_action('alter_home_page') ? 'hide' : '');
+                                ?>
+                                <div class="col-md-2 no-padding viewMode-control <?= $HideFromPlugin; ?>">
                                     <label class="sec-color"> <?php _e('Show:', 'tainacan') ?> </label>
                                     <button id="collectionViewMode" data-toggle="dropdown" type="button" class="btn btn-default"></button>
 
@@ -385,7 +425,7 @@ while (have_posts()) : the_post();
                                     </ul>
                                 </div>
 
-                                <div class="col-md-2 selectable-items" id="normal-selectable">
+                                <div class="col-md-2 selectable-items <?= $HideFromPlugin; ?>" id="normal-selectable">
                                     <?php
                                     if (is_user_logged_in() && get_the_ID() != get_option('collection_root_id') &&
                                             verify_collection_moderators(get_the_ID(), get_current_user_id())):
@@ -410,7 +450,8 @@ while (have_posts()) : the_post();
                                         </div>
                                     <?php endif; ?>
                                 </div>
-                                <div class="col-md-2 selectable-items selectable-items-trash" id="trash-selectable" style="display: none;">
+
+                                <div class="col-md-2 selectable-items selectable-items-trash <?= $HideFromPlugin; ?>" id="trash-selectable" style="display: none;">
                                     <?php
                                     if (is_user_logged_in() && get_the_ID() != get_option('collection_root_id') &&
                                             verify_collection_moderators(get_the_ID(), get_current_user_id())):
@@ -436,10 +477,21 @@ while (have_posts()) : the_post();
                                 <div class="col-md-1 no-padding trash-div pull-right">
                                     <?php
                                     if (is_user_logged_in()) {
+                                        if (has_filter('tainacan_show_restore_options')) {
+                                            $collection_id = get_the_ID();
+                                            $change_name = apply_filters('tainacan_show_restore_options', $collection_id);
+                                        } else
+                                            $change_name = true;
+
+                                        if (!$change_name) {
+                                            $trash_name = "Registros cancelados";
+                                        } else
+                                            $trash_name = __('Trash', 'tainacan');
+
                                         if (get_the_ID() != get_option('collection_root_id') && verify_collection_moderators(get_the_ID(), get_current_user_id())) {
                                             ?>
                                             <button onclick="show_trash_page();" class="btn btn-default pull-right button-trash collection-trash">
-                                                <?php _e('Trash', 'tainacan'); ?>
+                                                <?php echo $trash_name ?>
                                             </button>
                                             <?php
                                         } else {
@@ -449,20 +501,25 @@ while (have_posts()) : the_post();
                                             //if ($admin_email == $user_data || $blog_email == $user_data) {
                                             ?>
                                             <button onclick="show_trash_page();" class="btn btn-default button-trash pull-right">
-                                                <?php _e('Trash', 'tainacan'); ?>
+                                                <?php echo $trash_name; ?>
                                             </button>
                                             <?php
                                             //}
                                         }
+
+                                        if (!$change_name) {
+                                            $exit_trash_name = "Sair registros cancelados";
+                                        } else
+                                            $exit_trash_name = __('Exit trash', 'tainacan');
                                         ?>
-                                        <button style="display: none;" id="hideTrash" onclick="hide_trash_page()" class="btn btn-default pull-right"><?php _e('Exit trash', 'tainacan'); ?></button>
+                                        <button style="display: none;" id="hideTrash" onclick="hide_trash_page()" class="btn btn-default pull-right"><?php echo $exit_trash_name ?></button>
                                         <?php
                                     }
                                     ?>
-                                        
-                                        <button onclick="export_selected_objects()" type="button" class="btn btn-default pull-right" data-toggle="tooltip" data-placement="top" title="<?php _e('Download Results','tainacan') ?>">
-                                         <span style="font-size: 15px;" class="glyphicon glyphicon-download-alt">
-                                     </button>
+
+                                    <button onclick="export_selected_objects()" type="button" class="btn btn-default pull-right export-btn" data-toggle="tooltip" data-placement="top" title="<?php _e('Download Results', 'tainacan') ?>">
+                                        <span class="glyphicon glyphicon-download-alt">
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -520,7 +577,8 @@ while (have_posts()) : the_post();
         </div>
     </div>
     <!-- Fim do conteudo principal da pagina (div main part) -->
-    <!-- TAINACAN: esta div eh mostrada quando eh clicado com o botao direito sobre categorias e tags no dynatree  -->
+
+    <!-- TAINACAN: esta div é mostrada quando é clicado com o botao direito sobre categorias e tags no dynatree  -->
     <?php do_action('insert_new_contextmenu_dynatree') ?>
 
     <ul id="myMenuSingle" class="contextMenu" style="display:none;">
@@ -548,14 +606,15 @@ while (have_posts()) : the_post();
                 <a href="#delete"><?php _e('Remove', 'tainacan'); ?></a>
             </li>
         <?php endif; ?>
-        <?php //if (verify_collection_moderators(get_the_ID(), get_current_user_id())):     ?>
+        <?php //if (verify_collection_moderators(get_the_ID(), get_current_user_id())):      ?>
         <li class="list" id="list_meta_single">
             <a href="#metadata" style="background-position: 6px 50%;padding:1px 5px 1px 28px;background-repeat:no-repeat;background-image:url('<?php echo get_template_directory_uri() ?>/libraries/css/images/properties.png')">
                 <?php _e('Metadata', 'tainacan'); ?>
             </a>
         </li>
-        <?php // endif;     ?>
+        <?php // endif;      ?>
     </ul>
+
     <ul id="myMenuNoList" class="contextMenu" style="display:none;">
         <?php if (!$visualization_page_category || $visualization_page_category === 'right_button'): ?>   
             <li class="see">
@@ -582,9 +641,10 @@ while (have_posts()) : the_post();
             </li>
         <?php endif; ?>
         <?php //if (verify_collection_moderators(get_the_ID(), get_current_user_id())):  ?>
-        <?php // endif;      ?>
+        <?php // endif;       ?>
     </ul>
-    <!-- TAINACAN: esta div eh mostrada quando eh clicado com o botao direito sobre categorias e tags no dynatree  -->
+
+    <!-- TAINACAN: esta div é mostrada quando eh clicado com o botao direito sobre categorias e tags no dynatree  -->
     <ul id="myMenuSingleTag" class="contextMenu" style="display:none;">
         <li class="see">
             <?php if (!$visualization_page_category || $visualization_page_category === 'right_button'): ?>    
@@ -609,11 +669,19 @@ while (have_posts()) : the_post();
             </li>
         <?php endif; ?>
     </ul>
+
     <!-- TAINACAN: esta div (AJAX) mostra as configuracoes da colecao  -->
     <div id='container-fluid-configuration' class="container-fluid no-padding" style="background-color: #f1f2f2">
         <div id="configuration" class="col-md-12 no-padding" style="margin-top: 0;"></div>
     </div>
-    <!-- TAINACAN: scripts utilizados para criacao e monagem dos widgets de pesquisa  -->
+
+    <div id='container-fluid-users' class="container-fluid no-padding" style="background-color: #f1f2f2">
+        <div id="users_div"  class="col-md-12" style="margin-top: 0;"></div>
+    </div>
+
+    <!-- TAINACAN: scripts utilizados para criacao e montagem dos widgets de pesquisa  -->
+
+    <!--------------------------------------------------------------- Definição de janelas modais --------------------------------------------------------------->
 
     <!-- TAINACAN: modal padrao bootstrap para adicao de categorias    -->
     <div class="modal fade" id="modalAddCategoria" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
@@ -731,6 +799,7 @@ while (have_posts()) : the_post();
             </div>
         </div>
     </div>
+
     <!-- modal propriedades -->
     <div class="modal fade bs-example-modal-lg" id="single_modal_category_property"  tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog modal-lg">
@@ -742,6 +811,7 @@ while (have_posts()) : the_post();
             </div>
         </div>
     </div>
+
     <!-- modal exluir -->
     <div class="modal fade" id="modalExcluirCategoria" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
         <div class="modal-dialog">
@@ -769,6 +839,7 @@ while (have_posts()) : the_post();
             </div>
         </div>
     </div>
+
     <div class="modal fade" id="modal_send_files_items_zip" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -933,6 +1004,7 @@ while (have_posts()) : the_post();
             </div>
         </div>
     </div>
+
     <!-- TAINACAN: modal padrao bootstrap para exclusao de tags   -->
     <div class="modal fade" id="modalExcluirTag" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
         <div class="modal-dialog">
@@ -959,6 +1031,7 @@ while (have_posts()) : the_post();
             </div>
         </div>
     </div>
+
     <!-- TAINACAN: modal padrao bootstrap para demonstracao de execucao de processos, utilizado em varias partes do socialdb   -->
     <div class="modal fade" id="modalImportMain" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true" data-backdrop="static">
         <div class="modal-dialog">
@@ -986,6 +1059,7 @@ while (have_posts()) : the_post();
         </div>
     </div>
 
+    <!-- TAINACAN: modal padrao bootstrap para confirmação de importação Mapas Culturais   -->
     <div class="modal fade" id="modalImportConfirm" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true" data-backdrop="static">
         <div class="modal-dialog">
             <div class="modal-content"> <!--Conteúdo da janela modal-->
@@ -1034,6 +1108,8 @@ while (have_posts()) : the_post();
             </div>
         </div>
     </div>
+
+    <!-- TAINACAN: modal padrao bootstrap para exibição dos itens importados do Mapa Cultural   -->
     <div class="modal fade" id="modalImportFinished" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true" data-backdrop="static">
         <div class="modal-dialog">
             <div class="modal-content"> <!--Conteúdo da janela modal-->
@@ -1074,7 +1150,6 @@ while (have_posts()) : the_post();
                     </button>
 
                 </div><!--Fim rodapé-->
-
             </div>
         </div>
     </div>
@@ -1367,12 +1442,43 @@ while (have_posts()) : the_post();
             </div>
         </div>
     </div>
-    
+
+    <!-- TAINACAN: modal padrao bootstrap para exibição de um unico usuario   -->
+    <div class="modal fade" id="modalShowUser" tabindex="-1" role="dialog" aria-labelledby="ShowUser" aria-hidden="true" data-backdrop="static">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content"> <!--Conteúdo da janela modal-->
+                <div class="modal-header"><!--Cabeçalho-->
+                    <button type="button" class="close" data-dismiss="modal">
+                        <span aria-hidden="true">&times;</span>
+                        <span class="sr-only"><?php _e('Do you really want to close?', 'tainacan') ?></span>
+                    </button>
+
+                    <h4 class="modal-title text-center"><?php _e('User information', 'tainacan') ?></h4>
+                </div><!--Fim cabeçalho-->
+
+                <div class="modal-body" style="margin-bottom: 30px;"><!--Conteúdo-->
+                    <div class="col-md-12" id="user_info">
+
+                    </div>
+                </div><!--Fim conteúdo-->
+
+                <div class="modal-footer">
+                    <input type="hidden" id="elemenID" value="">
+                    <button type="button" class="btn btn-default" data-dismiss="modal"><?php _e('Close', 'tainacan'); ?></button>
+                    <button type="button" onclick="update_user_info();" id="btn_update_user" class="btn btn-primary right"><?php _e('Save'); ?></button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <?php
-        if(has_action('add_new_modals'))
-        {
-            do_action('add_new_modals', '');
-        }
+    if (has_action('add_new_modals')) {
+        do_action('add_new_modals', '');
+    }
+
+    if (has_filter('tainacan_show_reason_modal')) {
+        apply_filters('tainacan_show_reason_modal', "");
+    }
     ?>
     <?php require_once (dirname(__FILE__) . '/views/search/js/single_js.php'); ?>
     <?php require_once (dirname(__FILE__) . '/extras/routes/routes.php'); ?>

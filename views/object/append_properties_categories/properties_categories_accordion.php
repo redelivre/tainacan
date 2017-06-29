@@ -34,6 +34,13 @@ if($is_view_mode){
     $references['is_view_mode'] = true;
     $references['object_id'] = $object_id;
 }
+if($isEdit){
+    $references['is_edit'] = true;
+}
+
+if(isset($not_block)){
+     $references['operation'] = true;
+}
 
 $properties_concatenated = [];
 if (isset($property_object)):
@@ -89,7 +96,7 @@ if (isset($property_compounds)):
     }
     ?>
     <input type="hidden" 
-        name="pc_properties_compounds" 
+        name="pc_properties_compounds[]" 
         id="pc_properties_compounds_<?php echo $references['categories'] ?>"
         value="<?php echo implode(',', $result['ids']); ?>"> 
     <?php
@@ -174,13 +181,13 @@ foreach($original_properties as $property):
                 ?>
             </h2>
             <div>
-                <?php if($is_view_mode  || (isset($property['metas']['socialdb_property_locked']) && $property['metas']['socialdb_property_locked'] == 'true')): ?>
+                <?php if($is_view_mode  || (isset($property['metas']['socialdb_property_locked']) && $property['metas']['socialdb_property_locked'] == 'true' && !isset($not_block))): ?>
                      <div id="labels_<?php echo $property['id']; ?>_<?php echo $object_id; ?>">
                         <?php if (!empty($property['metas']['objects']) && !empty($property['metas']['value'])) { ?>
                             <?php foreach ($property['metas']['objects'] as $object) { // percoro todos os objetos  ?>
                                 <?php
                                 if (isset($property['metas']['value']) && !empty($property['metas']['value']) && in_array($object->ID, $property['metas']['value'])): // verifico se ele esta na lista de objetos da colecao
-                                    echo '<b><a  href="' . get_the_permalink($property['metas']['collection_data'][0]->ID) . '?item=' . $object->post_name . '" >' . $object->post_title . '</a></b><br>';
+                                    echo '<input type="hidden" name="socialdb_property_'.$property['id'].'[]" value="'.$object->ID.'"><b><a  href="' . get_the_permalink($property['metas']['collection_data'][0]->ID) . '?item=' . $object->post_name . '" >' . $object->post_title . '</a></b><br>';
                                 endif;
                                 ?>
                             <?php } ?>
@@ -191,7 +198,7 @@ foreach($original_properties as $property):
                         ?>
                     </div>
                 <?php else: 
-                     $object_properties_widgets_helper->generateWidgetPropertyRelated($property,$object->ID,$collection_id) ;
+                     $object_properties_widgets_helper->generateWidgetPropertyRelated($property,$object_id,$collection_id) ;
                 endif ?>    
             </div>  
     </div>     
@@ -246,12 +253,37 @@ foreach($original_properties as $property):
                 }
                 ?>
             </h2>
-            <?php if($is_view_mode  || (isset($property['metas']['socialdb_property_locked']) && $property['metas']['socialdb_property_locked'] == 'true')): ?>
+            <?php if($is_view_mode  || (isset($property['metas']['socialdb_property_locked']) && $property['metas']['socialdb_property_locked'] == 'true' && !isset($not_block))): ?>
                 <div>
-                    <?php if(isset($property['metas']['value'][0])): ?>
-                        <p><?php  echo '<a style="cursor:pointer;" onclick="wpquery_link_filter(' . "'" . $property['metas']['value'][0] . "'" . ',' . $property['id'] . ')">' . $property['metas']['value'][0] . '</a>';  ?></p>
+                    <!--?php if(isset($property['metas']['value'][0])): ?>
+                        <p>< ?php  echo '<a style="cursor:pointer;" onclick="wpquery_link_filter(' . "'" . $property['metas']['value'][0] . "'" . ',' . $property['id'] . ')">' . $property['metas']['value'][0] . '</a>';  ?></p>
+                    < ?php else: ?>
+                        <p>< ?php  _e('empty field', 'tainacan') ?></p>
+                    < ?php endif ?-->
+                    
+                    <?php if (is_plugin_active('data_aacr2/data_aacr2.php') && $property['type'] == 'date' && get_post_meta($object_id, "socialdb_property_{$property['id']}_date", true)): ?>
+                        <?php $value = get_post_meta($object_id, "socialdb_property_{$property['id']}_date", true); ?>
+                        <p><?php echo '<a style="cursor:pointer;" onclick="wpquery_link_filter(' . "'" . $value . "'" . ',' . $property['id'] . ')">' . $value . '</a>'; ?></p>
+                    <?php elseif (isset($property['metas']['value'][0])): ?>
+                        <?php $is_property_date = false; ?>
+                        <?php if ($property['type'] == 'date'): ?>
+                            <?php $is_property_date = true; ?>
+                        <?php endif; ?>
+                        <?php foreach ($property['metas']['value'] as $value): if (empty($value)) continue; ?>
+                            <?php
+                            if ($is_property_date):
+                                $date_temp = explode('-', $value);
+                                if (count($date_temp)>1):
+                                    $value = $date_temp[2].'/'.$date_temp[1].'/'.$date_temp[0];
+                                endif;
+                            endif;
+                            ?>
+                            <p><?php echo '<a style="cursor:pointer;" onclick="wpquery_link_filter(' . "'" . $value . "'" . ',' . $property['id'] . ')">' . $value . '</a>'; ?></p>
+                            <?php
+                        endforeach;
+                        ?>
                     <?php else: ?>
-                        <p><?php  _e('empty field', 'tainacan') ?></p>
+                        <p><?php _e('empty field', 'tainacan') ?></p>
                     <?php endif ?>
                 </div> 
             <?php else: ?> 
@@ -264,7 +296,7 @@ foreach($original_properties as $property):
                              style="padding-bottom: 10px;<?php echo ($i===0||(is_array($property['metas']['value'])&&$i<count($property['metas']['value']))) ? 'display:block': 'display:none'; ?>">
                         <?php if ($property['type'] == 'text') { ?>     
                                 <input type="text" 
-                                       id="form_edit_autocomplete_value_<?php echo $property['id']; ?>" 
+                                       id="form_autocomplete_value_<?php echo $property['id']; ?>_<?php echo $i; ?>_origin" 
                                        class="form-control form_autocomplete_value_<?php echo $property['id']; ?>" 
                                        value="<?php if ($property['metas']['value']) echo (isset($property['metas']['value'][$i])?$property['metas']['value'][$i]:''); ?>"
                                        name="socialdb_property_<?php echo $property['id']; ?>[]">
@@ -277,7 +309,7 @@ foreach($original_properties as $property):
                                 <input type="text" 
                                        class="form-control form_autocomplete_value_<?php echo $property['id']; ?>"
                                        onkeypress='return onlyNumbers(event)'
-                                       id="form_edit_autocomplete_value_<?php echo $property['id']; ?>" 
+                                       id="form_autocomplete_value_<?php echo $property['id']; ?>_<?php echo $i; ?>_origin" 
                                        name="socialdb_property_<?php echo $property['id']; ?>[]" 
                                        value="<?php if ($property['metas']['value']) echo $property['metas']['value'][0]; ?>">
                                    <?php }elseif ($property['type'] == 'autoincrement') { ?>   
@@ -325,10 +357,14 @@ foreach($original_properties as $property):
                             <?php }
                              // gancho para tipos de metadados de dados diferentes
                             else if(has_action('modificate_edit_item_properties_data')){
+                                $property['contador'] = $i;
+                                $property['operation'] = 'edit';
+                                $property['object_id'] = $object_id;
                                 do_action('modificate_edit_item_properties_data',$property);
-                                continue;
+                                //continue;
                             }else{ ?>
                                 <input type="text"  
+                                        id="form_autocomplete_value_<?php echo $property['id']; ?>_<?php echo $i; ?>_origin" 
                                        value="<?php if ($property['metas']['value']) echo (isset($property['metas']['value'][$i])?$property['metas']['value'][$i]:''); ?>" 
                                        class="form-control form_autocomplete_value_<?php echo $property['id']; ?>" 
                                        name="socialdb_property_<?php echo $property['id']; ?>[]" >
@@ -391,7 +427,7 @@ foreach($original_properties as $property):
             </h2>    
             <div class="form-group">
                <?php
-                if($is_view_mode  || (isset($property['metas']['socialdb_property_locked']) && $property['metas']['socialdb_property_locked'] == 'true')):
+                if($is_view_mode  || (isset($property['metas']['socialdb_property_locked']) && $property['metas']['socialdb_property_locked'] == 'true' && !isset($not_block))):
                     switch ($property['type']){
                         case 'radio';
                             $properties_terms_radio[] = $property['id'];
@@ -427,11 +463,16 @@ foreach($original_properties as $property):
                 } elseif ($property['type'] == 'tree') {
                     $properties_terms_tree[] = $property['id'];
                     ?>
-                    <button type="button"
-                        onclick="showModalFilters('add_category','<?php echo get_term_by('id', $property['metas']['socialdb_property_term_root'] , 'socialdb_category_type')->name ?>',<?php echo $property['metas']['socialdb_property_term_root'] ?>,'field_property_term_<?php echo $property['id']; ?>')" 
-                        class="btn btn-primary btn-xs"><?php _e('Add Category','tainacan'); ?>
-                    </button>
-                    <br><br>
+                    <?php if($property['metas']['socialdb_property_habilitate_new_category'] && $property['metas']['socialdb_property_habilitate_new_category'] == 'true'): ?>
+                            <button type="button"
+                           <?php
+                           echo (isset($is_view_mode)) ? 'style="display:none"' : ''
+                           ?>
+                                   onclick="showModalFilters('add_category', '<?php echo get_term_by('id', $property['metas']['socialdb_property_term_root'], 'socialdb_category_type')->name ?>',<?php echo $property['metas']['socialdb_property_term_root'] ?>, 'field_property_term_<?php echo $property['id']; ?>')" 
+                                   class="btn btn-primary btn-xs"><?php _e('Add Category', 'tainacan'); ?>
+                           </button>
+                           <br><br>
+                    <?php endif; ?>
                     <div class="row">
                         <div style='height: 150px;' 
                              class='col-lg-12'  
@@ -466,11 +507,16 @@ foreach($original_properties as $property):
                             <?php
                 }elseif ($property['type'] == 'tree_checkbox') {
                     $properties_terms_treecheckbox[] = $property['id']; ?>
-                    <button type="button"
-                        onclick="showModalFilters('add_category','<?php echo get_term_by('id', $property['metas']['socialdb_property_term_root'] , 'socialdb_category_type')->name ?>',<?php echo $property['metas']['socialdb_property_term_root'] ?>,'field_property_term_<?php echo $property['id']; ?>')" 
-                        class="btn btn-primary btn-xs"><?php _e('Add Category','tainacan'); ?>
-                    </button>
-                    <br><br>
+                    <?php if($property['metas']['socialdb_property_habilitate_new_category'] && $property['metas']['socialdb_property_habilitate_new_category'] == 'true'): ?>
+                            <button type="button"
+                           <?php
+                           echo (isset($is_view_mode)) ? 'style="display:none"' : ''
+                           ?>
+                                   onclick="showModalFilters('add_category', '<?php echo get_term_by('id', $property['metas']['socialdb_property_term_root'], 'socialdb_category_type')->name ?>',<?php echo $property['metas']['socialdb_property_term_root'] ?>, 'field_property_term_<?php echo $property['id']; ?>')" 
+                                   class="btn btn-primary btn-xs"><?php _e('Add Category', 'tainacan'); ?>
+                           </button>
+                           <br><br>
+                        <?php endif; ?>
                     <div class="row">
                         <div style='height: 150px;' 
                              class='col-lg-12'  
@@ -489,7 +535,7 @@ foreach($original_properties as $property):
     <?php endif; ?>   
   <?php endforeach; ?>  
 </div>
-<input type="hidden" name="pc_properties" id='pc_properties' value="<?php echo implode(',', $ids); ?>">
+<input type="hidden" name="pc_properties[]" id='pc_properties' value="<?php echo implode(',', $ids); ?>">
 <input type="hidden" name="categories" id='pc_categories' value="">
 <input type="hidden" name="properties_autocomplete" 
        id='pc_properties_autocomplete_<?php echo $categories ?>' 

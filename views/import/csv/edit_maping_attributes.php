@@ -29,8 +29,9 @@ include_once ('js/maping_attributes_js.php');
             </div>
             <div class="form-group">
                 <label for="socialdb_delimiter_code_csv"><?php _e('File Encoding','tainacan'); ?></label><br>
-                <select id="socialdb_delimiter_code_csv" name="socialdb_delimiter_code_csv" required="required" disabled="disabled" class="form-control">
-                    <option value="utf8">UTF8</option>  
+                <select id="socialdb_delimiter_code_csv" name="socialdb_delimiter_code_csv"  class="form-control">
+                    <option <?php echo (!isset($socialdb_channel_csv_code) || !$socialdb_channel_csv_code || $socialdb_channel_csv_code == 'utf8') ? 'selected="selected"' : '' ?> value="utf8">UTF8</option>  
+                    <option  <?php echo ($socialdb_channel_csv_code && $socialdb_channel_csv_code == 'iso8859-1') ? 'selected="selected"' : '' ?> value="iso8859-1">ISO 8859-1</option>   
                 </select>
             </div>
             <div class="form-group">
@@ -56,6 +57,10 @@ include_once ('js/maping_attributes_js.php');
                            id="socialdb_csv_has_header_no" 
                            value="0"> <?php _e('No','tainacan'); ?>
                 </label>
+            </div>
+            <h5><strong><?php _e('Alter File','tainacan') ?></strong>&nbsp;&nbsp;<small><?php  _e('This action will replace the previous file','tainacan') ?></small></h5>
+            <div class="form-group">
+                <input type="file" accept=".csv,.zip" id="csv_file" name="csv_file" placeholder="<?php _e('Insert the CSV file', 'tainacan'); ?>">
             </div>
             <input type="hidden" id="socialdb_csv_mapping_operation" name="operation" value="saving_delimiter_header_csv">
             <input type="hidden" id="socialdb_csv_mapping_collection_id" name="collection_id" value="">

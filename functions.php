@@ -12,8 +12,117 @@ include_once( ABSPATH . 'wp-admin/includes/plugin.php' );
 include_once( dirname(__FILE__) . "/config/config.php" );
 require_once('wp_bootstrap_navwalker.php');
 include_once("models/log/log_model.php");
+include_once('views/widgets/widget_contact.php');
+include_once('views/widgets/widget_social_media.php');
+include_once('views/widgets/widget_site_map.php');
 
 show_admin_bar(false);
+
+#### Desativar Widgets Padrões do Wordpress ####
+/*
+ * @author Weryques
+ * */
+function unregister_default_wp_widgets() {
+    unregister_widget('WP_Widget_Pages');
+    unregister_widget('WP_Widget_Calendar');
+    unregister_widget('WP_Widget_Archives');
+    unregister_widget('WP_Widget_Links');
+    unregister_widget('WP_Widget_Meta');
+    unregister_widget('WP_Widget_Search');
+    unregister_widget('WP_Widget_Text');
+    unregister_widget('WP_Widget_Categories');
+    unregister_widget('WP_Widget_Recent_Posts');
+    unregister_widget('WP_Widget_Recent_Comments');
+    unregister_widget('WP_Widget_RSS');
+    unregister_widget('WP_Widget_Tag_Cloud');
+    unregister_widget('WP_Nav_Menu_Widget');
+}
+add_action('widgets_init', 'unregister_default_wp_widgets', 1);
+
+#### WIDGETS AREAS #####
+/*
+ * Função que carrega as áreas para widgets padrões e ativa o menu de widgets em wp-admin.
+ * @author Weryques
+ *  */
+function tainacan_widgets_init(){
+    register_sidebar( array(
+        'name'          => __( 'Footer A', 'tainacan' ),
+        'id'            => 'footer-a',
+        'description'   => __( 'Add widgets here to appear in your footer.', 'tainacan' ),
+        'before_widget' => '<section id="%1$s" class="widget %2$s">',
+        'after_widget'  => '</section>',
+        'before_title'  => '<h5 class="widget-title">',
+        'after_title'   => '</h5>',
+    ));
+    register_sidebar( array(
+        'name'          => __( 'Footer B', 'tainacan' ),
+        'id'            => 'footer-b',
+        'description'   => __( 'Add widgets here to appear in your footer.', 'tainacan' ),
+        'before_widget' => '<section id="%1$s" class="widget %2$s">',
+        'after_widget'  => '</section>',
+        'before_title'  => '<h5 class="widget-title">',
+        'after_title'   => '</h5>',
+    ));
+    register_sidebar( array(
+        'name'          => __( 'Footer C', 'tainacan' ),
+        'id'            => 'footer-c',
+        'description'   => __( 'Add widgets here to appear in your footer.', 'tainacan' ),
+        'before_widget' => '<section id="%1$s" class="widget %2$s">',
+        'after_widget'  => '</section>',
+        'before_title'  => '<h5 class="widget-title">',
+        'after_title'   => '</h5>',
+    ));
+}
+add_action('widgets_init', 'tainacan_widgets_init');
+
+#### LOAD DEFAULT WIDGETS ###
+/*
+ * Função que carrega os widgets padrões
+ * @author Weryques
+ * */
+function activate_widgets(){
+    $active_widgets = get_option('sidebars_widgets');
+
+    $sidebars = array('a' => 'footer-a', 'b' => 'footer-b', 'c' => 'footer-c');
+
+    if(!empty($active_widgets[$sidebars['a']]) or !empty($active_widgets[$sidebars['b']]) or !empty($active_widgets[$sidebars['c']])){
+        return;
+    }
+
+    $counter = 1;
+
+    $site_map_content = get_option('widget_site_map');
+    $social_media_content = get_option('widget_social_media');
+    $contact_content = get_option('widget_contact');
+
+    $site_map_content[$counter] = array(
+        'title' => __('Mapa do site'), 'handbook' => '',
+        'option1_title' => '', 'option1_url' => '', 'option1_new_page' => '',
+        'option2_title' => '', 'option2_url' => '', 'option2_new_page' => '',
+        'option3_title' => '', 'option3_url' => '', 'option3_new_page' => '',
+        'option4_title' => '', 'option4_url' => '', 'option4_new_page' => '',
+    );
+    $social_media_content[$counter] = array(
+        'title' => __('Redes sociais'), 'facebook_url' => '',
+        'youtube_url' => '', 'twitter_url' => '',
+        'googleplus_url' => '', 'github_url' => ''
+    );
+    $contact_content[$counter] = array(
+        'title' => __('Contatos'), 'institution' => '', 'cnpj' => '',
+        'street' => '', 'address_number' => '', 'complement' => '', 'cep' => '',
+        'city' => '', 'state' => '', 'country' => '', 'email' => '', 'phone' => '',
+    );
+
+    $active_widgets[$sidebars['a']][] = 'site_map-'. $counter;
+    $active_widgets[$sidebars['b']][] = 'contact-' . $counter;
+    $active_widgets[$sidebars['c']][] = 'social_media-' . $counter;
+
+    update_option('sidebars_widgets', $active_widgets);
+    update_option('widget_site_map', $site_map_content);
+    update_option('widget_contact', $contact_content);
+    update_option('widget_social_media', $social_media_content);
+}
+add_action('widgets_init', 'activate_widgets');
 
 /**
  * Criando tabela taxonomymeta
@@ -312,6 +421,7 @@ function custom_rewrite_tag() {
     add_rewrite_tag('%tools%', '([^&]+)');
     add_rewrite_tag('%categories%', '([^&]+)');
     add_rewrite_tag('%edit-item%', '([^&]+)');
+    add_rewrite_tag('%add-item%', '([^&]+)');
 }
 
 add_action('init', 'custom_rewrite_tag', 10, 0);
@@ -353,7 +463,7 @@ function custom_rewrite_basic() {
     add_rewrite_rule('^'.__('signin','tainacan'), 'index.php?log-in=true', 'top');
     
     add_rewrite_rule('^([^/]*)/([^/]*)/editar', 'index.php?collection=$matches[1]&item=$matches[2]&edit-item=true', 'top');
-    
+    add_rewrite_rule('^([^/]*)/criar-item', 'index.php?collection=$matches[1]&add-item=true', 'top');
     add_rewrite_rule('^([^/]*)/([^/]*)', 'index.php?collection=$matches[1]&item=$matches[2]', 'top');
     //flush_rewrite_rules();
 }
@@ -1357,6 +1467,7 @@ function create_event_terms() {
     create_metas($event_property_object_term['term_id'], 'socialdb_event_property_object_metas', 'socialdb_event_property_lock_field', 'socialdb_event_property_lock_field');
     create_metas($event_property_object_term['term_id'], 'socialdb_event_property_object_metas', 'socialdb_event_property_to_search_in', 'socialdb_event_property_to_search_in');
     create_metas($event_property_object_term['term_id'], 'socialdb_event_property_object_metas', 'socialdb_event_property_avoid_items', 'socialdb_event_property_avoid_items');
+    create_metas($event_property_object_term['term_id'], 'socialdb_event_property_object_metas', 'socialdb_event_property_habilitate_new_item', 'socialdb_event_property_habilitate_new_item');
     ####### action para adicao de metadados no eventos de propriedade de object ######
     do_action('add_new_metas_event_property_object', $event_property_object_term, 'socialdb_event_property_object_metas');
     ############################################################################
@@ -1393,6 +1504,7 @@ function create_event_terms() {
     create_metas($event_property_term_term['term_id'], 'socialdb_event_property_term_metas', 'socialdb_event_property_visualization', 'socialdb_event_property_visualization');
     create_metas($event_property_term_term['term_id'], 'socialdb_event_property_term_metas', 'socialdb_event_property_lock_field', 'socialdb_event_property_lock_field');
     create_metas($event_property_term_term['term_id'], 'socialdb_event_property_term_metas', 'socialdb_event_property_default_value', 'socialdb_event_property_default_value');
+    create_metas($event_property_term_term['term_id'], 'socialdb_event_property_term_metas', 'socialdb_event_property_habilitate_new_category', 'socialdb_event_property_habilitate_new_category');
     $event_create_property_term = create_register('socialdb_event_property_term_create', 'socialdb_event_type', array('parent' => $event_property_term_term['term_id']));
     create_metas($event_create_property_term['term_id'], 'socialdb_event_property_term_create_metas', 'socialdb_event_property_term_create_id', 'socialdb_event_property_term_create_id');
     create_metas($event_create_property_term['term_id'], 'socialdb_event_property_term_create_metas', 'socialdb_event_property_term_create_name', 'socialdb_event_property_term_create_name');
@@ -1612,7 +1724,8 @@ if (!function_exists("theme_styles")) {
                 'slick-theme' => '/libraries/css/slick/slick-theme.css',
                 'socialdbSweetAlert' => '/libraries/css/SweetAlert/sweet-alert.css',
                 'socialdbcss' => '/libraries/css/socialdb.css',
-                'tainacan' => '/libraries/css/tainacan.css'
+                'tainacan' => '/libraries/css/tainacan.css',
+                'footer' => '/libraries/css/footer.css'
             ];
             foreach ($home_css as $css_file => $css_path) {
                 add_tainacan_css($css_file, $css_path);
@@ -1641,7 +1754,8 @@ if (!function_exists("theme_styles")) {
                 'jqcloudcss' => '/libraries/css/jqcloud/jqcloud.css',
                 'toastr' => '/libraries/js/toastr/toastr.css',
                 'croppic' => '/libraries/css/croppic/croppic.css',
-                'tainacan' => '/libraries/css/tainacan.css'
+                'tainacan' => '/libraries/css/tainacan.css',
+                'footer' => '/libraries/css/footer.css'
             ];
             $column = get_post_meta(get_the_ID(), 'socialdb_collection_submission_visualization',true);
             if($column&&$column=='one'){
@@ -1732,7 +1846,7 @@ if (!function_exists("theme_js")) {
         /* dropzone */
         wp_register_script('bootstrap-combobox', get_template_directory_uri() . '/libraries/js/combobox/bootstrap-combobox.js');
         /* Facebook */
-        wp_register_script('FacebookJS', 'http://connect.facebook.net/en_US/all.js');
+        wp_register_script('FacebookJS', 'https://connect.facebook.net/en_US/all.js');
         /* Row Sorter */
         wp_register_script('row-sorter', get_template_directory_uri() . '/libraries/js/row_sorter/jquery.rowsorter.js');
         /* Masked Input */
@@ -1762,10 +1876,14 @@ if (!function_exists("theme_js")) {
         /* Google Charts Loader */
         wp_register_script("routes", get_template_directory_uri() . '/libraries/js/router/jquery.routes.js');
 
+        /* PDF Thumbnail */
+        wp_register_script("pdf_thumbnail", get_template_directory_uri() . '/libraries/js/pdfThumb/pdf.js');
+        wp_register_script("pdf_thumbnail_worker", get_template_directory_uri() . '/libraries/js/pdfThumb/pdf.worker.js');
+
         $js_files = ['jquery_min', 'jqueryUi', 'bootstrap.min', 'JitJs', 'JitExcanvasJs', 'tainacan', 'DynatreeJs', 'ckeditorjs',
             'contextMenu', 'ColorPicker', 'SweetAlert', 'SweetAlertJS','js-xls', 'FileSaver', 'jsPDF', 'jsPDF_auto_table', 'tableExport', 'jquerydataTablesmin', 'data_table', 'raty',
             'jqpagination', 'dropzone', 'croppic', 'bootstrap-combobox', 'FacebookJS', 'row-sorter', 'maskedInput',
-            'montage', 'prettyphoto', 'select2', 'slick','timepicker', 'jqcloud', 'toastrjs', 'gloader','routes'];
+            'montage', 'prettyphoto', 'select2', 'slick','timepicker', 'jqcloud', 'toastrjs', 'gloader','routes', 'pdf_thumbnail', 'pdf_thumbnail_worker'];
 
         foreach ($js_files as $js_file):
             wp_enqueue_script($js_file);
@@ -2214,6 +2332,16 @@ function socialdb_insert_term($name, $taxonomy, $parent, $slug, $description = '
     return $array;
 }
 
+function socialdb_update_term_name($term_id,$name) {
+    global $wpdb;
+    $args = array('name' => $name);
+    $array = array('term_id' => $term_id);
+    if ($term_id) {
+        $wpdb->update($wpdb->terms, $args,array( 'term_id' => $term_id ));
+    } 
+    return $array;
+}
+
 /**
  *
  * Funcao que verifica a existencia de um termo pelo seu slug do tipo categoria
@@ -2243,9 +2371,9 @@ function socialdb_term_exists_by_slug($term, $taxonomy, $parent = null) {
  * @param string $taxonomy Metadata key A taxonomia do tipo do termo.
  * @return array com o id do termo se ele existir.
  */
-function socialdb_term_exists($term, $taxonomy) {
+function socialdb_term_exists($term, $taxonomy = '') {
     global $wpdb;
-    $sql = sprintf("select t.term_id, tt.term_taxonomy_id from %s tt inner join %s t on t.term_id = tt.term_id where t.term_id = %s ", $wpdb->term_taxonomy, $wpdb->terms, $term);
+    $sql = sprintf("select t.term_id, tt.term_taxonomy_id,t.name from %s tt inner join %s t on t.term_id = tt.term_id where t.term_id = %s ", $wpdb->term_taxonomy, $wpdb->terms, $term);
     return $wpdb->get_row($sql, ARRAY_A);
 }
 
@@ -2262,6 +2390,32 @@ function socialdb_relation_exists($term, $object) {
     global $wpdb;
     $sql = sprintf("select tt.object_id, tt.term_taxonomy_id from %s tt WHERE tt.object_id = %s AND tt.term_taxonomy_id = %s ", $wpdb->term_relationships, $object, $term);
     return $wpdb->get_row($sql, ARRAY_A);
+}
+
+/**
+ * 
+ * @param type $object
+ * @param type $taxonomy
+ * @return type
+ */
+function socialdb_relations_item($object, $taxonomy) {
+    global $wpdb;
+    $wp_posts = $wpdb->prefix . "posts";
+    $wp_term_taxonomy = $wpdb->prefix . "term_taxonomy";
+    $term_relationships = $wpdb->prefix . "term_relationships";
+    $query = "
+                    SELECT tt.* FROM $wp_posts p
+                    INNER JOIN $term_relationships tr ON p.ID = tr.object_id    
+                    INNER JOIN $wp_term_taxonomy tt ON tt.term_taxonomy_id = tr.term_taxonomy_id    
+                    WHERE p.ID = '$object'
+                    AND tt.taxonomy LIKE '$taxonomy'
+            ";
+    $result = $wpdb->get_results($query);
+    if ($result && is_array($result) && count($result) > 0) {
+        return $result;
+    } else {
+        return array();
+    }
 }
 
 /**
@@ -2478,6 +2632,43 @@ function update_post_content($object_id, $content) {
     $wp_posts = $wpdb->prefix . "posts";
     $query = "UPDATE $wp_posts SET post_content = '" . $content . "' WHERE ID = $object_id";
     $results = $wpdb->get_results($query);
+}
+
+
+/**
+ *
+ * Funcao que atualiza o content de um post
+ *
+ * @param string $object_id O id do objeto.
+ * @param string $content O conteudo a ser atualizado.
+ * @return void.
+ */
+function update_post_title($object_id, $title) {
+    global $wpdb;
+    $wp_posts = $wpdb->prefix . "posts";
+    $query = "UPDATE $wp_posts SET post_title = '" . $title . "' WHERE ID = $object_id";
+    $results = $wpdb->get_results($query);
+}
+
+/**
+ * 
+ * @param type $item_id
+ * @return boolean
+ */
+function hasHelper($item_id) {
+    global $wpdb;
+    $wp_postmeta = $wpdb->prefix . "postmeta";
+    $query = "
+                    SELECT p.* FROM $wp_postmeta p  
+                    WHERE p.post_id = '$item_id'
+                    AND p.meta_key LIKE '%socialdb_property_helper_%' AND p.meta_key  NOT LIKE 'socialdb_property_helper_false'
+            ";
+    $result = $wpdb->get_results($query);
+    if ($result && is_array($result) && count($result) > 0) {
+        return true;
+    } else {
+        return false;
+    }
 }
 
 /* * *****************************************************************************
@@ -2956,14 +3147,19 @@ function format_home_items_char($char) {
 }
 
 function home_header_bg($bg_id) {
-    $cover_id = get_post_meta($bg_id, 'socialdb_respository_cover_id', true);
-    $image_url = ( $cover_id ) ? wp_get_attachment_url($cover_id) : get_template_directory_uri() . '/libraries/images/bg-home' . rand(1, 5) . '.jpg';
+    $cover_id = get_option( 'socialdb_repository_cover_id');
+    if(has_filter('alter_image_index_container')){
+        $image_url = ( $cover_id ) ? wp_get_attachment_url($cover_id) : apply_filters('alter_image_index_container','');
+    }else{
+        $image_url = ( $cover_id ) ? wp_get_attachment_url($cover_id) : get_template_directory_uri() . '/libraries/images/bg-home' . rand(1, 5) . '.jpg';
+    }
+    
 
     return '<header style="background-image: url(' . $image_url . ')">';
 }
 
 function repository_bg($col_id) {
-    $cover_id = get_post_meta($col_id, 'socialdb_repository_cover_id', true);
+    $cover_id = get_option( 'socialdb_repository_cover_id');
     $image_url = ( $cover_id ) ? wp_get_attachment_url($cover_id) : get_template_directory_uri() . '/libraries/images/bg-home' . rand(1, 5) . '.jpg';
     
     return $image_url;
@@ -3017,12 +3213,26 @@ function get_item_thumb_image($item_id, $size="thumbnail") {
         if( count($_post_img_id) > 0 ) {
             $_img_id = (int) $_post_img_id[0];
             $_img_url = get_post($_img_id)->guid;
+            
             return '<img src="'. $_img_url .'" alt="" class="img-responsive" style="max-width: 100%" />';
         } else {
             return '<img src="' . get_item_thumbnail_default($item_id) . '" class="img-responsive" style="max-width: 100%">';
         }
     } else {
-        return wp_get_attachment_image(get_post_thumbnail_id($item_id), $size, false, array('class' => 'img-responsive'));
+        $html_image = wp_get_attachment_image(get_post_thumbnail_id($item_id), $size, false, array('class' => 'img-responsive'));
+
+        $image = wp_get_attachment_image_src(get_post_thumbnail_id($item_id), "thumbnail", false);
+
+        if(preg_match("/pdf_thumb_/", basename($image[0])))
+        {
+            $DOM = simplexml_load_string($html_image);
+            $DOM->attributes()->height = "150";
+            $DOM->attributes()->width = "150";
+
+            $html_image = $DOM->asXML();
+        }
+        
+        return $html_image;
     }
 }
 
@@ -3190,5 +3400,7 @@ if ( ! defined("MANUAL_TAINACAN_URL") ) {
     }
 }
 
+/************* API ********************/
+include_once 'extras/json-rest-api/plugin.php';
 /************* Remove o post type das colecoes ********************/
 include_once 'extras/remove-slug-post/remove-slug-custom-post-type.php';

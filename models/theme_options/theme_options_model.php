@@ -1,9 +1,9 @@
 <?php
 
 ini_set('max_input_vars', '10000');
-include_once ('../../../../../wp-config.php');
-include_once ('../../../../../wp-load.php');
-include_once ('../../../../../wp-includes/wp-db.php');
+include_once (dirname(__FILE__) . '/../../../../../wp-config.php');
+include_once (dirname(__FILE__) . '/../../../../../wp-load.php');
+include_once (dirname(__FILE__) . '/../../../../../wp-includes/wp-db.php');
 require_once(dirname(__FILE__) . '../../general/general_model.php');
 require_once(dirname(__FILE__) . '../../collection/collection_model.php');
 
@@ -207,7 +207,19 @@ class ThemeOptionsModel extends Model {
         return json_encode($data);
     }
 
+    function update_devolution_email_alert($data)
+    {
+        update_option('socialdb_devolution_email_alert', $data['devolution_email_alert_content']);
+
+        $data['title'] = __("Sucess", 'tainacan');
+        $data['msg'] = __("Options successfully updated!", 'tainacan');
+        $data['type'] = "success";
+
+        return json_encode($data);
+    }
+    
     function update_configuration($data) {
+        
         $reload = false;
         $data['socialdb_repository_permissions'] = ['socialdb_collection_permission_create_collection' => $data['socialdb_collection_permission_create_collection'], 'socialdb_collection_permission_delete_collection' => $data['socialdb_collection_permission_delete_collection']];
         $data['repository_content'] = strip_tags($data['repository_content']);
@@ -232,6 +244,13 @@ class ThemeOptionsModel extends Model {
         if (isset($data['remove_thumbnail']) && $data['remove_thumbnail']) {
             delete_post_thumbnail($socialdb_logo);
         }
+        
+        if (isset($data['remove_cover']) && $data['remove_cover']) {
+            $cover_id = get_option('socialdb_repository_cover_id');
+            wp_delete_attachment($cover_id);
+            delete_option('socialdb_repository_cover_id');
+            $reload = true;
+        }
 
         if (isset($data['disable_empty_collection']) && $data['disable_empty_collection'] == 'disabled') {
             update_option('disable_empty_collection', 'true');
@@ -254,9 +273,10 @@ class ThemeOptionsModel extends Model {
                 $socialdb_logo = $object_id;
             }
 
-            if (isset($_FILES['socialdb_collection_cover']) && !empty($_FILES['socialdb_collection_cover'])) {
-                $cover_id = $this->add_cover($socialdb_logo);
-                update_post_meta($socialdb_logo, 'socialdb_respository_cover_id', $cover_id);
+            if (isset($_FILES['socialdb_collection_cover']) && !empty($_FILES['socialdb_collection_cover']) && !empty($_FILES['socialdb_collection_cover']['name'])) {
+                $cover_id = $this->add_cover(get_option('collection_root_id'));
+                update_option('socialdb_repository_cover_id', $cover_id);
+                $reload = true;
             }
         }
 
@@ -271,6 +291,31 @@ class ThemeOptionsModel extends Model {
         $data['type'] = "success";
         $data['reload'] = $reload;
 
+        //Salva mapeamento de Coleções do Tainacan Biblioteca
+
+        ini_set('display_errors', '0');     # don't show any errors...
+        error_reporting(E_ALL | E_STRICT);  # ...but do log them
+
+        if(!empty($data['collections']))
+        {
+            update_option('socialdb_general_mapping_collection', $data['collections']);
+        }
+
+        //Loan time
+        $loan_time = $data['default_time'];
+        update_option('socialdb_loan_time', $loan_time);
+        
+        //Days of devolution
+        if(!empty($data['weekday']))
+        {
+            update_option('socialdb_devolution_weekday', $data['weekday']);
+        }
+        
+        //Devolution day problem
+        if(!empty($data['devolutionDayProblem']))
+        {
+            update_option('socialdb_devolution_day_problem', $data['devolutionDayProblem']);
+        }
 
         return json_encode($data);
     }
@@ -311,6 +356,7 @@ class ThemeOptionsModel extends Model {
                 }
             }
         }
+
         return $result;
     }
 

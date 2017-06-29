@@ -146,17 +146,26 @@
                                 },
                                 minLength: 2,
                                 response: function( event, ui ) {
-                                        if(ui.content && ui.content.length>0 && $('.form_autocomplete_value_'+property_id+'_mask').val()!==''){
-                                           $.each(ui.content,function(index,value){
-                                               console.log( value.item_id , $('#object_id_edit').val())
-                                               if(($(event.target).val()==value.value || $(event.target).val().toLowerCase().trim()==value.value.toLowerCase().trim()) && value.item_id != $('#object_id_edit').val()){
-                                                    toastr.error($(event.target).val()+' <?php _e(' is already inserted!', 'tainacan') ?>', '<?php _e('Attention!', 'tainacan') ?>', {positionClass: 'toast-bottom-right'});
-                                                    $(event.target).val('');
-                                               }
-                                               $(".form_autocomplete_value_" + property_id).autocomplete('close');
-                                           }); 
-                                        }
-                                    },
+                                    var myself = false;
+                                    var contador = false;
+                                    if(ui.content && ui.content.length>0 && $('.form_autocomplete_value_'+property_id+'_mask').val()!==''){
+                                       $.each(ui.content,function(index,value){
+                                           console.log( value.item_id , $('#object_id_edit').val())
+                                           if(($(event.target).val()==value.value || $(event.target).val().toLowerCase().trim()==value.value.toLowerCase().trim()) && value.item_id != $('#object_id_edit').val()){
+                                               contador++;
+                                           }else if(($(event.target).val()==value.value || $(event.target).val().toLowerCase().trim()==value.value.toLowerCase().trim()) && value.item_id == $('#object_id_edit').val()){
+                                               myself = true;
+                                           }
+                                           $(".form_autocomplete_value_" + property_id).autocomplete('close');
+                                       }); 
+
+                                       if(contador>0 && myself === false){
+                                            toastr.error($(event.target).val()+' <?php _e(' is already inserted!', 'tainacan') ?>', '<?php _e('Attention!', 'tainacan') ?>', {positionClass: 'toast-bottom-right'});
+                                            $(event.target).val('');
+                                            $(".form_autocomplete_value_" + property_id).autocomplete('close');
+                                       }
+                                    }
+                                },
                                 select: function (event, ui) {
                                     $("#form_autocomplete_value_" + property_id).val('');
                                     if( $('.form_autocomplete_value_'+property_id+'_mask').val()!=='' && $(event.target).val().indexOf('key')){
@@ -565,8 +574,19 @@
                 });
                 $('.category-'+remove_id).remove();
             }
-
-
+        }else if($('select[name="socialdb_propertyterm_'+property_id+'"]').is('select')){
+            $.each($('select[name="socialdb_propertyterm_'+property_id+'"] option'),function(index,val){
+                var i = selected_categories.indexOf($(this).val());
+                if(i>=0){
+                    selected_categories.splice(i, 1);
+                    $('#selected_categories').val(selected_categories.join(','));
+                    $.each($('.category-'+$(this).val()),function(index,value){
+                        var id = $(this).attr('property');
+                        remove_property_general(id);
+                    });
+                    $('.category-'+$(this).val()).remove();
+                }
+            });
         }
         
         //busco os metadados da categoria selecionada    
@@ -584,7 +604,7 @@
             $.ajax({
                 url: $('#src').val() + '/controllers/object/object_controller.php',
                 type: 'POST',
-                data: { <?php echo ($is_view_mode) ? 'is_view_mode:true,' : '' ?>operation: 'list_properties_categories_accordeon',properties_to_avoid:$('#properties_id').val(),categories: id, object_id:$('#object_id_edit').val()}
+                data: { <?php echo ($is_view_mode) ? 'is_view_mode:true,' : '' ?>operation: 'list_properties_categories_accordeon',properties_to_avoid:$('#properties_id').val(),categories: id, object_id:$('#object_id_edit').val(),isEdit:true}
             }).done(function (result) {
                 console.log('568');
                 //hide_modal_main();
@@ -697,6 +717,28 @@
             $('#container_field_'+property_id+'_'+(id-1)).show();     
             $('#container_field_'+property_id+'_'+(id)).hide();     
         }
+    }
+    function remove_container(property_id,id){
+        var show_button = false;
+        $('#container_field_'+property_id+'_'+(id)).hide();
+        $('#core_validation_'+property_id).val('true');
+        $('#form_autocomplete_value_'+property_id+'_'+(id)+"_origin").val('');
+        if($('#socialdb_property_'+property_id+'_'+(id)).length>0)
+            $('#socialdb_property_'+property_id+'_'+(id)).val('');
+            
+        validate_all_fields();
+        //se o proximo container
+        if(!$('#container_field_'+property_id+'_'+(id+1)).is(':visible')){
+            show_button = true;
+        }
+        //busco o container que esta sendo mostrado
+        while(!$('#container_field_'+property_id+'_'+(id)).is(':visible')){
+            id--;
+        }
+        //se 
+        if(show_button)
+            $('#button_property_'+property_id+'_'+id).show();
+        
     }
 //################################ VALIDACOES##############################################//
     function validate_status(property_id){
@@ -824,30 +866,38 @@
     function validate_all_fields(){
         var cont = 0;
         var cont_pane = 0;
+        var deny_repeated_ids = [];
         $( ".core_validation").each(function( index ) {
-            if($( this ).val()==='false'){
-                cont++;
-                <?php if(!$is_view_mode): ?>
-                var id = $( this ).attr('id').replace('core_validation_','');
-                if(!$.isNumeric(id) && $('#fixed_id_'+id).length > 0){
-                     var id =  $('#fixed_id_'+id).val();
-                }
-                $('#meta-item-'+id+' h2').css('background-color','#ffcccc');
-                $.each($( "#submit_form_edit_object .tab-pane" ),function(index,seletor){
-                    if($(seletor).find('#meta-item-'+id).length > 0){
-                        var id_tab = $(seletor ).attr('id').replace('tab-','');
-                        $('#click-tab-'+id_tab).css('background-color','#ffcccc');
+            if(deny_repeated_ids.indexOf($( this ).attr('id'))<0){
+                deny_repeated_ids.push($( this ).attr('id'));
+                if($( this ).val()==='false'){
+                    cont++;
+                    <?php if(!$is_view_mode): ?>
+                    var id = $( this ).attr('id').replace('core_validation_','');
+                    if(!$.isNumeric(id) && $('#fixed_id_'+id).length > 0){
+                         var id =  $('#fixed_id_'+id).val();
                     }
-                });
-                <?php endif; ?>
+                    $('#meta-item-'+id+' h2').css('background-color','#ffcccc');
+                    $.each($( "#submit_form_edit_object .tab-pane" ),function(index,seletor){
+                        if($(seletor).find('#meta-item-'+id).length > 0){
+                            var id_tab = $(seletor ).attr('id').replace('tab-','');
+                            $('#click-tab-'+id_tab).css('background-color','#ffcccc');
+                        }
+                    });
+                    <?php endif; ?>
+                }
             }
         });
         <?php if(!$is_view_mode): ?>
         $.each($( "#submit_form_edit_object .tab-pane" ),function(index,seletor){
                 var id_tab = $(seletor ).attr('id').replace('tab-','');
+                deny_repeated_ids = [];
                 $( seletor).find(".core_validation").each(function( index ) {
-                    if($( this ).val()==='false'){
-                        cont_pane++;
+                    if(deny_repeated_ids.indexOf($( this ).attr('id'))<0){
+                        deny_repeated_ids.push($( this ).attr('id'));
+                        if($( this ).val()==='false'){
+                            cont_pane++;
+                        }
                     }
                 });
                 if(cont_pane===0){

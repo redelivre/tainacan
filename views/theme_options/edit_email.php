@@ -27,6 +27,12 @@ include_once ('../../helpers/view_helper.php');
             <?php echo ViewHelper::render_default_submit_button(); ?>
 
         </form>
+        <?php
+        if(has_action('add_loan_mail'))
+        {
+            do_action('add_loan_mail');
+        }
+        ?>
     </div>
 
-</div>	
+</div>

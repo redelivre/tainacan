@@ -5,7 +5,7 @@ include_once(dirname(__FILE__) . '/../../helpers/repository/repository_helper.ph
 $view_helper = new RepositoryHelper();
 $post_thumb = get_the_post_thumbnail($socialdb_logo, 'thumbnail');
 ?>
-<div class="col-md-12">
+<div class="col-md-12 ui-widget-content metadata-actions">
 
     <div class="col-md-12 config_default_style">
         <?php ViewHelper::render_config_title( __("Repository Configuration", 'tainacan') ); ?>
@@ -28,12 +28,12 @@ $post_thumb = get_the_post_thumbnail($socialdb_logo, 'thumbnail');
                 <label for="repository_logo"><?php _e('Cover','tainacan'); ?></label>
                 <br>
                 <?php
-                $cover_id = get_post_meta($socialdb_logo, 'socialdb_respository_cover_id', true);
+                $cover_id = get_option('socialdb_repository_cover_id');
                 if($cover_id){
                   echo '<img src="'.  wp_get_attachment_thumb_url($cover_id).'">'; ?>
                 <br><br>
                 <label for="remove_thumbnail"><?php _e('Remove Cover','tainacan'); ?></label>
-                <input type="checkbox"  id="remove_cover" name="remove_thumbnail" value="true">
+                <input type="checkbox"  id="remove_cover" name="remove_cover" value="true">
                 <br><br>
                 <?php } ?>
                 <input type="file" size="50" id="socialdb_collection_cover" name="socialdb_collection_cover" class="btn btn-default btn-sm">
@@ -112,6 +112,20 @@ $post_thumb = get_the_post_thumbnail($socialdb_logo, 'thumbnail');
                     </div>
                 </div>
             </div>
+
+            <!-- Mapeamento coleção -->
+            <?php
+            if(has_action("add_mapping_library_collections"))
+            {
+                do_action("add_mapping_library_collections");
+            }
+
+            if(has_action('add_material_loan_devolution'))
+            {
+                do_action('add_material_loan_devolution');
+            }
+            ?>
+
             <input type="hidden" id="operation" name="operation" value="update_configuration">
             <button type="submit" class="btn btn-primary pull-right"><?php _e('Submit','tainacan'); ?></button>
         </form>

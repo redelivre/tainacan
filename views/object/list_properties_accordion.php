@@ -26,6 +26,7 @@ $references = [
     'properties_terms_multipleselect' => &$properties_terms_multipleselect,
     'properties_terms_treecheckbox' => &$properties_terms_treecheckbox   
 ];
+$references['operation'] = 'add';
 if (isset($property_object)):
      foreach ($property_object as $property) { 
         $ids[] = $property['id']; ?>
@@ -43,7 +44,7 @@ if (isset($property_object)):
                     $object_properties_widgets_helper->generateValidationIcons($property);
                     ?>
             </h2>
-            <?php if((isset($property['metas']['socialdb_property_locked']) && $property['metas']['socialdb_property_locked'] == 'true')): ?>
+            <?php if((isset($property['metas']['socialdb_property_locked']) && $property['metas']['socialdb_property_locked'] == 'true_')): ?>
                 <div>
                     <?php if(isset($property['metas']['socialdb_property_default_value']) && $property['metas']['socialdb_property_default_value']!=''): $property['metas']['value'][] = $property['metas']['socialdb_property_default_value']; ?>
                         <p><?php  echo '<a style="cursor:pointer;" onclick="wpquery_link_filter(' . "'" . $property['metas']['socialdb_property_default_value']. "'" . ',' . $property['id'] . ')">' .get_post($property['metas']['socialdb_property_default_value'])->post_title . '</a>';  ?></p>
@@ -83,7 +84,7 @@ if (isset($property_object)):
             </h2>
             <?php $cardinality = $view_helper->render_cardinality_property($property);   ?>
             <div>
-                <?php if((isset($property['metas']['socialdb_property_locked']) && $property['metas']['socialdb_property_locked'] == 'true')): ?>
+                <?php if((isset($property['metas']['socialdb_property_locked']) && $property['metas']['socialdb_property_locked'] == 'true_')): ?>
                     <div>
                         <?php if(isset($property['metas']['socialdb_property_default_value']) && $property['metas']['socialdb_property_default_value']!=''): ?>
                             <p><?php  echo '<a style="cursor:pointer;" onclick="wpquery_link_filter(' . "'" . $property['metas']['socialdb_property_default_value']. "'" . ',' . $property['id'] . ')">' .$property['metas']['socialdb_property_default_value'] . '</a>';  ?></p>
@@ -148,13 +149,93 @@ if (isset($property_object)):
                                         $(function() {
                                             init_metadata_date( "#form_autocomplete_value_<?php echo $property['id']; ?>_<?php echo $i ?>" );
                                         });
-                                    </script>    
+                                    </script>
                                     <input 
                                         style="margin-right: 5px;" 
                                         size="13" 
                                         class="input_date auto-save form_autocomplete_value_<?php echo $property['id']; ?>" 
-                                        type="text" value="<?php
-                                        if ($property['metas']['socialdb_property_default_value']): echo $property['metas']['socialdb_property_default_value'];endif;?>" 
+                                        type="text" value="
+                                        <?php
+                                            if ($property['metas']['socialdb_property_default_value']):
+                                                echo $property['metas']['socialdb_property_default_value'];
+                                            endif;
+                                            $mapping = get_option('socialdb_general_mapping_collection');
+                                           if(has_action("add_material_loan_devolution") && $mapping['Emprestimo'] == $collection_id)
+                                           {
+                                               //Get variable from DB
+                                               $loan_time = get_option('socialdb_loan_time');
+                                               $devolution_days = get_option('socialdb_devolution_weekday');
+                                               $devolution_day_problem_option = get_option('socialdb_devolution_day_problem');
+                                               if($devolution_day_problem_option == 'after')
+                                                   $sum = 1;
+                                               else $sum = -1;
+
+
+                                               $today = intval(date('d'));
+                                               $month = intval(date('m'));
+                                               $year = intval (date('Y'));
+                                               $days_in_month = date('t', mktime(0, 0, 0, $month, 1, $year));
+                                               $actual_weekday = '';
+
+
+                                               $day_to_return += $today + $loan_time;
+                                               while ($day_to_return > $days_in_month)
+                                               {
+                                                   $day_to_return -= $days_in_month;
+                                                   $next_month = $month + 1;
+
+                                                   if($next_month % 12 == 0)
+                                                   {
+                                                       $month = 12;
+                                                   }else if($next_month % 12 > $month)
+                                                   {
+                                                       $month = $next_month % 12;
+                                                   }
+
+                                                   if($next_month > 12)
+                                                   {
+                                                       $year++;
+                                                   }
+
+                                                   $days_in_month = date('t', mktime(0, 0, 0, $month, 1, $year));
+                                               }
+
+                                               if($day_to_return < $days_in_month)
+                                               {
+                                                   $actual_weekday = date("l", mktime(0, 0, 0, $month, $day_to_return, $year));
+
+                                                   while (!array_key_exists($actual_weekday, $devolution_days))
+                                                   {
+                                                       $day_to_return += $sum;
+                                                       $actual_weekday = date("l", mktime(0, 0, 0, $month, $day_to_return, $year));
+
+                                                       if($day_to_return > $days_in_month)
+                                                       {
+                                                           $day_to_return -= $days_in_month;
+                                                           $next_month = $month + 1;
+
+                                                           if($next_month % 12 == 0)
+                                                           {
+                                                               $month = 12;
+                                                           }else if($next_month % 12 > $month)
+                                                           {
+                                                               $month = $next_month % 12;
+                                                           }
+
+                                                           if($next_month > 12)
+                                                           {
+                                                               $year++;
+                                                           }
+
+                                                           $days_in_month = date('t', mktime(0, 0, 0, $month, 1, $year));
+                                                       }
+                                                   }
+                                               }
+
+                                               echo date('d/m/Y', mktime(0, 0, 0, $month, $day_to_return, $year));
+                                           }
+                                        ?>
+                                        "
                                         id="form_autocomplete_value_<?php echo $property['id']; ?>_<?php echo $i ?>" 
                                         name="socialdb_property_<?php echo $property['id']; ?>[]" 
                                         >
@@ -166,7 +247,68 @@ if (isset($property_object)):
                                     $property['object_id'] = $object_id;
                                     do_action('modificate_insert_item_properties_data',$property);
                                    // continue;
-                                }else{ ?>
+                                }else if($property['type'] == 'user')
+                                {
+                                    ?>
+                                        <!--Look for user-->
+                                       <input type="text" id="selected_user_info_hidden" name="socialdb_property_<?php echo $property['id']; ?>[]" value="" style="display: none;">
+                                       <div class="metadata-related col-md-12">
+                                           <div class="col-md-3">
+                                                <div class="selected_user">
+                                                    <div id="selected-user-info">
+                                                        <p class="text-center text-primary" style="font-size: 15px; padding-top: 30%;" id="no_users_msg">
+                                                            <?php _e("No user selected", "tainacan"); ?>
+                                                        </p>
+                                                        <div id="place_to_show_user_info" style="display: none;">
+                                                            <div class="label_info">
+                                                                <label class="label label-default"><?php _e("Name", "tainacan"); ?></label>
+                                                                <input class="form-control" type="text" readonly id="selected_user_name" value=""><br>
+                                                            </div>
+                                                            <div class="label_info">
+                                                                <label class="label label-default"><?php _e("User login", "tainacan"); ?></label>
+                                                                <input class="form-control" type="text" readonly id="selected_user_login"><br>
+                                                            </div>
+                                                            <div class="label_info">
+                                                                <label class="label label-default"><?php _e("E-mail", "tainacan"); ?></label>
+                                                                <input class="form-control" type="text" readonly id="selected_user_email"></label><br>
+                                                            </div>
+                                                            <div class="label_info">
+                                                                <label class="label label-default"><?php _e("CPF", "tainacan"); ?></label>
+                                                                <input class="form-control" type="text" readonly id="selected_user_cpf"></label><br>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                           </div>
+                                           <div class="col-md-9">
+                                               <form id="users_search_<?php echo $property['id'] ?>">
+                                                   <div class="form-group" style="border-bottom: none;">
+                                                        <label><?php _e("User's name"); ?>: </label>
+                                                       <div class="input-group">
+                                                           <input class="form-control" type="text" id="text_box_search" onkeyup="verify_enter(window.event, 'magnifying_glass');" placeholder="<?php _e("Type user's name", "tainacan");?>">
+
+                                                           <span class="input-group-addon" style="cursor: pointer;" id="magnifying_glass" onclick="search_for_users()">
+                                                               <span class="glyphicon glyphicon-search"></span>
+                                                           </span>
+                                                       </div>
+
+                                                       <div id="where_to_show_users" style="margin-top: 13px; display: none;">
+                                                           <label>
+                                                               <?php _e("Users found")?>
+                                                           </label>
+                                                           <input type="hidden" id="meta_id" value="<?php echo $property['id'] ?>">
+                                                           <div class="col-md-12" id="users_found">
+                                                               <!-- Onde os usuarios encontrados serão colocados -->
+                                                           </div>
+                                                       </div>
+                                                   </div>
+                                               </form>
+                                           </div>
+                                       </div>
+                                   <?php
+                                }
+                                else{
+                               ?>
                                     <input type="text" 
                                            value="<?php 
                                                     if ($property['metas']['socialdb_property_default_value']): 
@@ -204,7 +346,7 @@ if ((isset($property_term) && count($property_term) > 1) || (count($property_ter
                  endif; 
                  ?>
             </h2>   
-            <?php if((isset($property['metas']['socialdb_property_locked']) && $property['metas']['socialdb_property_locked'] == 'true')): ?>
+            <?php if((isset($property['metas']['socialdb_property_locked']) && $property['metas']['socialdb_property_locked'] == 'true_')): ?>
                     <div>
                         <?php if(isset($property['metas']['socialdb_property_default_value']) && $property['metas']['socialdb_property_default_value']!=''): ?>
                             <p><?php  echo '<a style="cursor:pointer;" onclick="wpquery_link_filter(' . "'" . $property['metas']['socialdb_property_default_value']. "'" . ',' . $property['id'] . ')">' .get_term_by('id', $property['metas']['socialdb_property_default_value'], 'socialdb_category_type')->name . '</a>';  ?></p>
@@ -231,12 +373,14 @@ if ((isset($property_term) && count($property_term) > 1) || (count($property_ter
             } elseif ($property['type'] == 'tree') {
                 $properties_terms_tree[] = $property['id'];
                 ?>
+                <?php if($property['metas']['socialdb_property_habilitate_new_category'] && $property['metas']['socialdb_property_habilitate_new_category'] == 'true'): ?>
                 <button type="button"
                         onclick="showModalFilters('add_category','<?php echo get_term_by('id', $property['metas']['socialdb_property_term_root'] , 'socialdb_category_type')->name ?>',<?php echo $property['metas']['socialdb_property_term_root'] ?>,'field_property_term_<?php echo $property['id']; ?>')" 
                         class="btn btn-primary btn-xs">
                             <span class="glyphicon glyphicon-plus"></span>
                             <?php _e('Add Category','tainacan'); ?>
                 </button>
+                <?php endif; ?>
                 <br><br>
                 <div st class="row">
                     <div  style='height: 150px;' class='col-lg-12'  id='field_property_term_<?php echo $property['id']; ?>'></div>
@@ -284,6 +428,8 @@ if ((isset($property_term) && count($property_term) > 1) || (count($property_ter
                         <?php
             }elseif ($property['type'] == 'tree_checkbox') {
                 $properties_terms_treecheckbox[] = $property['id']; ?>
+                
+                <?php if($property['metas']['socialdb_property_habilitate_new_category'] && $property['metas']['socialdb_property_habilitate_new_category'] == 'true'): ?>
                 <button type="button"
                         onclick="showModalFilters('add_category','<?php echo get_term_by('id', $property['metas']['socialdb_property_term_root'] , 'socialdb_category_type')->name ?>',<?php echo $property['metas']['socialdb_property_term_root'] ?>,'field_property_term_<?php echo $property['id']; ?>')" 
                         class="btn btn-primary btn-xs">
@@ -291,6 +437,7 @@ if ((isset($property_term) && count($property_term) > 1) || (count($property_ter
                             <?php _e('Add Category','tainacan'); ?>
                 </button>
                 <br><br>
+                <?php endif; ?>
                 <div class="row">
                     <div style='height: 150px;' class='col-lg-12'  id='field_property_term_<?php echo $property['id']; ?>'></div>
                     <!--select multiple size='6' class='col-lg-6' name='socialdb_propertyterm_<?php echo $property['id']; ?>[]' id='socialdb_propertyterm_<?php echo $property['id']; ?>' <?php

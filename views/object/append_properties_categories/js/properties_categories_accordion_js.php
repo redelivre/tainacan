@@ -199,6 +199,8 @@
                         //  } else {
                         if(categories&&categories.indexOf(children.term_id)>-1){
                             checked = 'checked="checked"';
+                            $('#core_validation_'+selectbox).val('true');
+                            set_field_valid(selectbox,'core_validation_'+selectbox);
                         }
                        //  delete_value(children.term_id);//retiro
                         $('#field_property_term_' + radio).append('<input '+checked+' '+required+' type="radio" name="socialdb_propertyterm_'+radio+'" value="' + children.term_id + '">&nbsp;' + children.name + '<br>');
@@ -212,8 +214,8 @@
     function pc_list_checkboxes(checkboxes,categories) {
         console.log('pc loading checkboxes',checkboxes);
         if (checkboxes) {
-            addLabelViewPage(checkboxes,categories);
             $.each(checkboxes, function (idx, checkbox) {
+                addLabelViewPage(checkbox,categories);
                 $.ajax({
                     url: $('#src').val() + '/controllers/property/property_controller.php',
                     type: 'POST',
@@ -230,6 +232,8 @@
                         }
                         if(categories&&categories.indexOf(children.term_id)>-1){
                             checked = 'checked="checked"';
+                            $('#core_validation_'+checkbox).val('true');
+                            set_field_valid(checkbox,'core_validation_'+checkbox);
                         }
                         //  if (property.id == selected) {
                         //     $('#property_object_reverse').append('<option selected="selected" value="' + property.id + '">' + property.name + ' - (' + property.type + ')</option>');
@@ -270,6 +274,8 @@
                            //  delete_value(children.term_id);
                             if(categories&&categories.indexOf(children.term_id)>-1){
                                 checked = 'selected="selected"';
+                                $('#core_validation_'+selectbox).val('true');
+                                set_field_valid(selectbox,'core_validation_'+selectbox);
                             }
                             $('#field_property_term_' + selectbox).append('<option '+checked+' value="' + children.term_id + '">' + children.name + '</option>');
                             //  }
@@ -488,9 +494,11 @@
                 if (elem.terms && elem.terms.length > 0) {
                     $.each(elem.terms, function (index, term) {
                         if (term.term_id) {
-                            $("#labels_" + property + "_<?php echo $object_id; ?>").append('<p><a style="cursor:pointer;" onclick="wpquery_term_filter(' + term.term_id + ',' + property + ')">' + term.name + '</a></p><br>');//zero o html do container que recebera os
+                            $("#labels_" + property + "_<?php echo $object_id; ?>").append('<input type="hidden" name="socialdb_propertyterm_'+property+'[]" value="'+term.term_id+'"><p><a style="cursor:pointer;" onclick="wpquery_term_filter(' + term.term_id + ',' + property + ')">' + term.name + '</a></p><br>');//zero o html do container que recebera os
                         }
                     });
+                    $('#core_validation_'+property).val('true');
+                    set_field_valid(property,'core_validation_'+property);
                 }else{
                     $("#labels_" + property + "_<?php echo $object_id; ?>").append('<p><?php  _e('empty field', 'tainacan') ?></p>');
                 }

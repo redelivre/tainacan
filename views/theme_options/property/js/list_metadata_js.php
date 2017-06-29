@@ -39,28 +39,54 @@
         $('#show_reverse_properties').hide();
     });
 
-    var changeable_selects = ['#socialdb_property_term_widget', '#property_term_filter_widget'];
+     var changeable_selects = ['#socialdb_property_term_widget', '#property_term_filter_widget'];
     // cardinality type 1
     $('#socialdb_property_term_cardinality_1').click(function (e) {
         $(changeable_selects).each(function (idx, el) {
             $(el).html('')
-                .append('<option value="tree"><?php _e('Tree','tainacan') ?></option>')
-                .append('<option value="menu"><?php _e('Menu','tainacan') ?></option>')
-                .append('<option value="radio"><?php _e('Radio','tainacan') ?></option>')
-                .append('<option value="selectbox"><?php _e('Selectbox','tainacan') ?></option>');
+                    .append('<option value="tree"><?php _e('Tree', 'tainacan') ?></option>')
+                    //  .append('<option value="menu"><?php _e('Menu', 'tainacan') ?></option>')
+                    .append('<option value="radio"><?php _e('Radio', 'tainacan') ?></option>')
+                    .append('<option value="selectbox"><?php _e('Selectbox', 'tainacan') ?></option>');
         });
+        term_widget_options('#socialdb_property_term_widget');
     });
 
     // cardinality type n
     $('#socialdb_property_term_cardinality_n').click(function (e) {
-        $(changeable_selects).each(function (idx, el) {
-            $(el).html('')
-                .append('<option value="checkbox"><?php _e('Checkbox','tainacan') ?></option>')
-                .append('<option value="multipleselect"><?php _e('Multipleselect ','tainacan') ?></option>')
-                .append('<option value="tree_checkbox"><?php _e('Tree - Checkbox','tainacan') ?></option>');
-        });
+        $('#socialdb_property_term_widget').html('')
+                .append('<option value="tree_checkbox"><?php _e('Tree - Checkbox', 'tainacan') ?></option>')
+                .append('<option value="checkbox"><?php _e('Checkbox', 'tainacan') ?></option>')
+                .append('<option value="multipleselect"><?php _e('Multipleselect ', 'tainacan') ?></option>');
+        $('#property_term_filter_widget').html('')
+                .append('<option value="tree"><?php _e('Tree', 'tainacan') ?></option>')
+                .append('<option value="checkbox"><?php _e('Checkbox', 'tainacan') ?></option>')
+                .append('<option value="multipleselect"><?php _e('Multipleselect ', 'tainacan') ?></option>');
+
+        term_widget_options('#socialdb_property_term_widget');
     });
     $('#socialdb_property_term_cardinality_1').trigger('click');
+    //vinculacao de categorias
+    $('#socialdb_property_vinculate_category_exist').click(function (e) {
+        if ($('#socialdb_property_vinculate_category_exist').is(':checked')) {
+            $('#terms_dynatree').fadeIn();
+            $('#container_add_category').fadeOut();
+        } else {
+            $('#terms_dynatree').fadeOut();
+            $('#container_add_category').fadeIn();
+        }
+    });
+
+    $('#socialdb_property_vinculate_category_create').click(function (e) {
+        if ($('#socialdb_property_vinculate_category_create').is(':checked')) {
+            $('#terms_dynatree').fadeOut();
+            $('#container_add_category').fadeIn();
+        } else {
+            $('#terms_dynatree').fadeIn();
+            $('#container_add_category').fadeOut();
+        }
+    });
+    
     $('.edit').click(function (e) {
         var id = $(this).closest('td').find('.post_id').val();
         $.get(src + '/views/ranking/edit.php?id=' + id, function (data) {
@@ -452,7 +478,11 @@
 
                 $(current_modal).modal('hide');
                 $("#dynatree_properties_filter").dynatree("getTree").reload();
-                list_collection_metadata();
+                if(elem.operation != 'update_property_data'){     
+                    list_collection_metadata();
+                }else{
+                    $('#meta-item-'+elem.property_data_id+' .property-name').text(elem.property_data_name)
+                }
                 getRequestFeedback(elem.type, elem.msg);
                 //limpando caches
                 delete_all_cache_collection();
@@ -683,7 +713,7 @@
                         
                         $('ul#metadata-container').append(
                             '<li id="meta-item-' + current_id + '" data-widget="' + property.search_widget + '" class="root_category ui-widget-content ui-corner-tr">' +
-                            '<label '+style+' class="title-pipe">' + property.name + '</label>' +
+                            '<label '+style+' class="title-pipe">' + '<span class="property-name">' + property.name + '</span>' + '</label>' +
                             '<a onclick="edit_metadata(' + current_id + ')" class="edit_property_data" href="javascript:void(0)">' +
                             '<div class="action-icons"> <span class="glyphicon glyphicon-edit"></span></a> ' +
                             visibility+'</div></li>');
@@ -691,7 +721,7 @@
                         if ( $.inArray(property.type, ranking_types) == -1 ) {
                             $('ul#metadata-container').append(
                                 '<li id="meta-item-' + current_id + '" data-widget="' + current_search_widget + '" class="' + property.type + ' ui-widget-content ui-corner-tr">' +
-                                '<label class="title-pipe">' + property.name + '</label><div class="action-icons">' +
+                                '<label class="title-pipe">' + '<span class="property-name">' + property.name + '</span>' + '</label><div class="action-icons">' +
                                 '<a onclick="edit_metadata(' + current_id + ')" class="edit_property_data" href="javascript:void(0)">' +
                                 '<span class="glyphicon glyphicon-edit"><span></a> ' +
                                 '<input type="hidden" class="property_id" value="' + property.id + '">' +
@@ -878,7 +908,11 @@
                 }
             }
             $("#dynatree_properties_filter").dynatree("getTree").reload();
-            list_collection_metadata();
+            if(elem.operation != 'update_property_object'){     
+                list_collection_metadata();
+            }else{
+                $('#meta-item-'+elem.property_object_id+' .property-name').text(elem.property_object_name)
+            }
             getRequestFeedback(elem.type, elem.msg);
             //limpando caches
                 delete_all_cache_collection();
@@ -913,14 +947,14 @@
                     if (property.metas.socialdb_property_is_fixed && property.metas.socialdb_property_is_fixed === 'true' ) {
                         $('ul#metadata-container').append(
                             '<li id="meta-item-'+current_id+'" data-widget="' + property.search_widget + '" class="root_category ui-widget-content ui-corner-tr">' +
-                            '<label class="title-pipe">' + property.name + '</label>' +
+                            '<label class="title-pipe">' + '<span class="property-name">' + property.name + '</span>' + '</label>' +
                             '<a onclick="edit_property_object('+ current_id +')" class="edit_property_data" href="javascript:void(0)">' +
                             '<div class="action-icons default-metadata"><span class="glyphicon glyphicon-edit"><span></a> ' +
                             ' <span class="glyphicon glyphicon-trash no-edit"><span> </div></li>' );
                     } else {
                         if ( $.inArray(property.type, ranking_types) == -1 ) {
                             $('ul#metadata-container').append(
-                                '<li id="meta-item-'+current_id+'" data-widget="' + property.search_widget + '" class="ui-widget-content ui-corner-tr"><label class="title-pipe">' + property.name +
+                                '<li id="meta-item-'+current_id+'" data-widget="' + property.search_widget + '" class="ui-widget-content ui-corner-tr"><label class="title-pipe">' + '<span class="property-name">' + property.name + '</span>' +
                                 '</label><div class="action-icons">' +
                                 '<a onclick="edit_property_object('+ current_id +')" class="edit_property_data" href="javascript:void(0)">' +
                                 '<span class="glyphicon glyphicon-edit"><span></a> ' +
@@ -975,6 +1009,7 @@
             var locked = (elem.metas.socialdb_property_locked) ? elem.metas.socialdb_property_locked : false;
             var search = (elem.metas.socialdb_property_to_search_in) ? elem.metas.socialdb_property_to_search_in.split(',') : [];
             var avoid_items = (elem.metas.socialdb_property_avoid_items) ? elem.metas.socialdb_property_avoid_items : false;
+            var habilitate_new_item = (elem.metas.socialdb_property_habilitate_new_item) ? elem.metas.socialdb_property_habilitate_new_item : false;
             var default_value = (elem.metas.socialdb_property_default_value) ? elem.metas.socialdb_property_default_value : false;
             if ( is_metadata_filter( elem.id ) ) {
                 var use_filter = "use_filter";
@@ -1069,7 +1104,16 @@
             if (avoid_items) {
                 $("#meta-relationship .property_avoid_items").prop('checked', true);
             }
-
+            
+            //habilitar novo item
+            $("#meta-relationship #new_item_true").removeAttr('checked');
+            $("#meta-relationship #new_item_false").removeAttr('checked');
+            if (habilitate_new_item == 'true') {
+                $("#meta-relationship #new_item_true").prop('checked', true);
+            }else{
+                $("#meta-relationship #new_item_false").prop('checked', true);
+            }
+            
             //propriedades usadas na busca
             if (search.length > 0) {
                 $('#properties_to_search_in').val(search.join(','));
@@ -1105,12 +1149,18 @@
             contentType: false
         }).done(function (result) {
             elem = jQuery.parseJSON(result);
+            $("#terms_dynatree").dynatree("getTree").reload();
             $('#modalImportMain').modal('hide');
-            $("#dynatree_properties_filter").dynatree("getTree").reload();
+            $('#socialdb_property_vinculate_category_exist').prop('checked', 'checked');
+            $('#socialdb_property_vinculate_category_exist').trigger('click');
+            $('#property_term_new_category').val('');
+            $('#taxonomy_create_zone').html('');
+
             var item_was_dragged = $("#meta-category .term-widget").hasClass('select-meta-filter');
             var current_operation = elem.operation;
             var menu_style_id = elem.select_menu_style;
             var term_root_id = elem.socialdb_property_term_root;
+            var ordenation = $('#meta-category input[name=filter_ordenation]:checked').val();
 
             if ( elem.property_data_use_filter == "use_filter" ) {
                 if ( current_operation == "add_property_term" ) {
@@ -1125,9 +1175,14 @@
                 }
             }
         
-            $("#meta-category").modal('hide');
-            list_collection_metadata();
+           $("#meta-category").modal('hide');
+            if(elem.operation != 'update_property_term'){     
+                list_collection_metadata();
+            }else{
+                $('#meta-item-'+elem.property_term_id+' .property-name').text(elem.property_term_name)
+            }
             getRequestFeedback(elem.type, elem.msg);
+            $("#dynatree_properties_filter").dynatree("getTree").reload();
             //limpando caches
             delete_all_cache_collection();
         });
@@ -1166,7 +1221,8 @@
                         }
                         
                         $('ul#metadata-container').append(
-                            '<li id="meta-item-' + current_id + '" data-widget="' + property.search_widget + '" class="root_category ui-widget-content ui-corner-tr"><label '+style+' class="title-pipe">' + property.name +
+                            '<li id="meta-item-' + current_id + '" data-widget="' + property.search_widget + '" class="root_category ui-widget-content ui-corner-tr"><label '+style+' class="title-pipe">'
+                            + '<span class="property-name">' + property.name + '</span>' +
                             '</label><div class="action-icons">' +
                             '<a onclick="edit_term(' + current_id + ')" class="edit_property_data" href="javascript:void(0)">' +
                             '<span class="glyphicon glyphicon-edit"><span></a> ' +
@@ -1175,7 +1231,8 @@
                         if ( $.inArray(property.type, ranking_types) == -1 ) {
                             var term_root_id =  property.metas.socialdb_property_term_root;
                             $('ul#metadata-container').append(
-                                '<li id="meta-item-' + current_id + '" data-widget="' + property.search_widget + '" class="ui-widget-content ui-corner-tr term-root-'+term_root_id+'"><label class="title-pipe">' + property.name +
+                                '<li id="meta-item-' + current_id + '" data-widget="' + property.search_widget + '" class="ui-widget-content ui-corner-tr term-root-'+term_root_id+'"><label class="title-pipe">' 
+                                + '<span class="property-name">' + property.name + '</span>' +
                                 '</label><div class="action-icons"> <input type="hidden" class="property_data_id" value="' + current_id + '">' +
                                 '<a onclick="edit_term(' + current_id + ')" class="edit_property_data" href="javascript:void(0)">' +
                                 '<span class="glyphicon glyphicon-edit"><span></a> ' +
@@ -1216,8 +1273,17 @@
         }).done(function (result) {
             elem = $.parseJSON(result);
             $("#meta-category").modal('show');
+            var visualization = (elem.metas.socialdb_property_visualization) ? elem.metas.socialdb_property_visualization : 'public';
             var locked = (elem.metas.socialdb_property_locked) ? elem.metas.socialdb_property_locked : false;
             var default_value = (elem.metas.socialdb_property_default_value) ? elem.metas.socialdb_property_default_value : false;
+            var habilitate_new_category = (elem.metas.socialdb_property_habilitate_new_category) ? elem.metas.socialdb_property_habilitate_new_category : false;
+            $('#socialdb_property_vinculate_category_exist').prop('checked', 'checked');
+            $('#socialdb_property_vinculate_category_exist').trigger('click');
+            $('#property_term_new_category').val('');
+            $('#taxonomy_create_zone').html('');
+            $('#container_add_category').hide();
+            $("#meta-category").modal('show');
+            $("#meta-category").css('zIndex', '1100');
             if( $("#meta-item-"+id).hasClass('root_category') ) {
                 $( "#meta-category .metadata-common-fields").hide();
             } else {
@@ -1267,6 +1333,15 @@
             if (locked) {
                 $("#meta-category .property_lock_field").prop('checked', true);
             }
+            
+            //habilitar novo item
+            $("#meta-category #new_item_true").removeAttr('checked');
+            $("#meta-category #new_item_false").removeAttr('checked');
+            if (habilitate_new_category == 'true') {
+                $("#meta-category #new_item_true").prop('checked', true);
+            }else{
+                $("#meta-category #new_item_false").prop('checked', true);
+            }
 
             var term_root = elem.metas.socialdb_property_term_root;
             if (term_root) {
@@ -1292,16 +1367,32 @@
     }
 
     function get_category_root_name(id) {
-        $.ajax({
-            type: "POST",
-            url: $('#src').val() + "/controllers/category/category_controller.php",
-            data: {operation: 'get_category_root_name', category_id: id}
-        }).done(function (result) {
-            elem_first = jQuery.parseJSON(result);
-            var item_title = elem_first.title;
-            $("#socialdb_property_term_root").html('').append('<option selected="selected" value="' + elem_first.key + '">' + item_title + '</option>');
-            $("#meta-category .dynatree-container .dynatree-title:contains('" + item_title +  "')").siblings(".dynatree-radio").click();
+        var cont = 0;
+        $("#terms_dynatree").dynatree("getRoot").visit(function (node) {
+            node.select(false);
         });
+        $('#selected_categories_term').html('');
+        $("#terms_dynatree").dynatree("getRoot").visit(function (node) {
+            if (node.data.key == id) {
+                cont++;
+                node.select(true);
+            }
+        });
+
+        if (cont === 0) {
+            $('#selected_categories_term').html('');
+            $.ajax({
+                type: "POST",
+                url: $('#src').val() + "/controllers/category/category_controller.php",
+                data: {category_id: id, operation: 'get_metas'}
+            }).done(function (result) {
+                elem = jQuery.parseJSON(result);
+                add_label_box_term(elem.term.term_id, elem.term.name, '#selected_categories_term');
+                $("#socialdb_property_term_root").val(elem.term.term_id);
+                // console.log(elem);
+            });
+        }
+
     }
 
     function toggle_term_widget(el) {
@@ -1370,7 +1461,11 @@
             document.getElementById('submit_form_ranking').reset();
             $('#meta-voting').modal('hide');
             getRequestFeedback(elem.success, elem.msg);
-            list_collection_metadata();
+            if(elem.operation != 'edit'){     
+                list_collection_metadata();
+            }else{
+                $('#meta-item-'+ranking_id+' .property-name').text(ranking_name)
+            }
             //limpando caches
             delete_all_cache_collection();
         });
@@ -1424,7 +1519,8 @@
                         }
 
                         $('ul#metadata-container').append(
-                            '<li id="meta-item-'+current_id+'" data-widget="' + ranking.search_widget + '" class="ui-widget-content ui-corner-tr"><label class="title-pipe">' + current_title +
+                            '<li id="meta-item-'+current_id+'" data-widget="' + ranking.search_widget + '" class="ui-widget-content ui-corner-tr"><label class="title-pipe">' 
+                            + '<span class="property-name">' + current_title + '</span>' +
                             '</label><div class="action-icons"> <input type="hidden" class="property_data_id" value="'+ current_id +'">' +
                             '<a onclick="edit_ranking('+ current_id + ')" class="edit_ranking" href="javascript:void(0)">' +
                             '<span class="glyphicon glyphicon-edit"><span></a> ' +
@@ -1560,8 +1656,20 @@
             var cur = "#" + el;
             $(cur + " .data-widget").hide();
         });
+        $('#socialdb_property_term_cardinality_1').trigger('click');
         $("#submit_form_property_term #socialdb_property_term_root").html('');
+        if($('#data-advanced-configuration-object').is(':visible')){
+            toggle_advanced_configuration('#data-advanced-configuration-object');
+        }
         $('.dynatree-selected').removeClass('dynatree-selected');
+        $("#terms_dynatree").dynatree("getRoot").visit(function (node) {
+            node.select(false);
+        });
+        $("#property_category_dynatree").dynatree("getRoot").visit(function (node) {
+            node.select(false);
+        });
+        $("#meta-category .term-widget").hide();
+        $(".modal-title").text('<?php _e('Add new property', 'tainacan') ?>');
         $("#meta-category .term-widget").hide();
     }
 
@@ -1825,25 +1933,17 @@
                 }
             },
             onSelect: function (flag, node) {
-                $.ajax({
-                    type: "POST",
-                    url: $('#src').val() + "/controllers/category/category_controller.php",
-                    data: {collection_id: $('#collection_id').val(), operation: 'verify_has_children', category_id: node.data.key}
-                }).done(function (result) {
-//                    console.log($("#socialdb_property_term_root").val());
-                    $('.dropdown-toggle').dropdown();
-                    elem_first = jQuery.parseJSON(result);
-                    if (elem_first.type === 'error') {
-                        showAlertGeneral(elem_first.title, elem_first.msg, elem_first.type);
-                        node.select(false);
-                    } else if($("#socialdb_property_term_root").val()=='null'||$("#socialdb_property_term_root").val()!=node.data.key) {
-                       // showAlertGeneral(elem_first.title, elem_first.msg, elem_first.type);
-                        $("#socialdb_property_term_root").html('');
-                        $("#socialdb_property_term_root").append('<option selected="selected" value="' + node.data.key + '">' + node.data.title + '</option>');
-
-                    }
-
-                });
+                if ($("#socialdb_property_term_root").val() !== node.data.key) {
+                    if ($("#socialdb_property_term_root").val() != '')
+                        remove_label_box_term($("#socialdb_property_term_root").val(), "#terms_dynatree");
+                    $("#socialdb_property_term_root").val(node.data.key);
+                    $('#selected_categories_term').html('');
+                    add_label_box_term(node.data.key, node.data.title, '#selected_categories_term');
+                } else {
+                    $("#socialdb_property_term_root").val('');
+                    remove_label_box_term(node.data.key, "#terms_dynatree");
+                    $('#selected_categories_term').html('');
+                }
             },
             dnd: {
                 preventVoidMoves: true, // Prevent dropping nodes 'before self', etc.
@@ -2039,6 +2139,20 @@
             $('.mask_down').show();
         }
     }
+    
+    /**
+     * 
+     * @param {type} seletor
+     * @returns {undefined}     */
+    function toggle_advanced_configuration(seletor) {
+        console.log(seletor);
+        if ($(seletor).is(':visible')) {
+            $(seletor).slideUp();
+        } else {
+            $(seletor).slideDown();
+        }
+
+    }
      /**
      ****************************************************************************
      ************************* DEFAULT VALUE ************************
@@ -2081,5 +2195,195 @@
             $('#socialdb_property_term_default_value').val('');
         }
      }
-    
+     /**
+     ****************************************************************************
+     ************************* FUNCOES PARA AREA DE CRIACAO DE TAXONOMIAS ************************
+     ****************************************************************************
+     **/
+    var selected_element;
+    var new_category_html =
+            '<span onclick="click_event_taxonomy_create_zone($(this).parent())"  style="display: none;" class="li-default taxonomy-list-name taxonomy-category-new">' +
+            '<span class="glyphicon glyphicon-pencil"></span><?php _e('Click here to edit the category name', 'tainacan') ?></span>' +
+            '<input maxlength="255" type="text" ' +
+            'onblur="blur_event_taxonomy_create_zone($(this).parent())"' +
+            'onkeyup="keypress_event_taxonomy_create_zone($(this).parent(),event)" class="input-taxonomy-create style-input">';
+    // quando se clica sobre a categoria
+    function click_event_taxonomy_create_zone(object) {
+        $('.input-taxonomy-create').hide();
+        $('.taxonomy-list-name').show();
+        var seletor = $(object).find('.taxonomy-list-name').first();
+        var input = $(object).find('.input-taxonomy-create').first();
+        if (seletor.hasClass('taxonomy-category-finished') || seletor.hasClass('taxonomy-category-modified')) {
+            $(input).val($(seletor).text());
+            $(seletor).hide();
+            $(input).show();
+            $(input).focus();
+        } else if (seletor.hasClass('taxonomy-category-new')) {
+            $(seletor).hide();
+            $(input).show();
+            $(input).focus();
+        }
+        selected_element = object;
+    }
+    //quando uma categoria tem o foco perdido
+    function blur_event_taxonomy_create_zone(object) {
+        var seletor = $(object).find('.taxonomy-list-name').first();
+        var input = $(object).find('.input-taxonomy-create').first();
+        if ($(input).val() === '') {
+            $(object).remove();
+        }
+        $(seletor).show();
+        $(input).hide();
+        $(seletor).text($(input).val());
+    }
+    // quando algo eh escrito no container de cada categoria
+    function keypress_event_taxonomy_create_zone(object, e) {
+        // pego o span com o texto
+        var seletor = $(object).find('.taxonomy-list-name').first();
+        // pego o primeiro input com o valor descartando os possiveis filhos
+        var input = $(object).find('.input-taxonomy-create').first();
+        //se estiver finalizando a edicao, isto eh, se apertar enter
+        if (e.keyCode == 13 && seletor.hasClass('taxonomy-category-modified') && $(input).val() !== '') {
+            //pego o valor do input
+            var val = $(input).val();
+            //mostro o texto
+            $(seletor).show();
+            //escondoo input
+            $(input).hide();
+            //coloco o valor do input no span do texto
+            $(seletor).text($(input).val());
+            //se exisitir filhos
+            var children = '';
+            if ($(object).find('ul').first().length > 0) {
+                children = "<ul >" + $(object).find('ul').first().html() + '</ul>';
+            }
+            //atraves do seletor do li ou ul 
+            $(object)
+                    // create a new li item
+                    .before("<li class='taxonomy-list-create'   >" +
+                            "<span onclick='click_event_taxonomy_create_zone($(this).parent())'   class='li-default taxonomy-list-name taxonomy-category-finished'>" + val +
+                            "</span><input type='text' maxlength='255' style='display: none;' class='input-taxonomy-create style-input'" +
+                            " onblur='blur_event_taxonomy_create_zone($(this).parent())'  onkeyup='keypress_event_taxonomy_create_zone($(this).parent(),event)' >" +
+                            children + "</li>")
+                    // set plus sign again
+                    .html(new_category_html);
+            $('#taxonomy_create_zone').find('.input-taxonomy-create').focus().is(':visible');
+            e.preventDefault();
+        }// se estiver deletando toda a linha
+        else if ((e.keyCode == 8 || e.keyCode == 46) && $(input).val() === '') {
+            $(object).remove();
+            e.preventDefault();
+        } else if ($(seletor).text() !== '') {
+            seletor.removeClass('taxonomy-category-new');
+            seletor.addClass('taxonomy-category-modified');
+            $(seletor).text($(input).val());
+            e.preventDefault();
+        }
+        save_taxonomy();
+    }
+    //verifica se o container possui algum li, funcao apenas caso estiver vazio
+    function verify_has_li() {
+        if ($('#taxonomy_create_zone').has('ul').length == 0) {
+            $('#taxonomy_create_zone').html('<ul class="root_ul"><li class="taxonomy-list-create">' +
+                    new_category_html + '</li></ul>')
+        }
+    }
+    //adicionando uma categoria na irma acima
+    function add_hierarchy_taxonomy_create_zone() {
+        var input = $(selected_element).find('.input-taxonomy-create').first();
+        if ($(input).val() === '') {
+            return false;
+        }
+        var sibling = $(selected_element).prev();
+        var children = '';
+        if ($(selected_element).find('ul').first().length > 0) {
+            children = "<ul >" + $(selected_element).find('ul').first().html() + '</ul>';
+        }
+        if (sibling.length > 0) {
+            if (sibling.find('ul').first().length > 0) {
+                sibling.find('ul').first().append("<li class='taxonomy-list-create' >" +
+                        "<span style='display: none;'  onclick='click_event_taxonomy_create_zone($(this).parent())' class='li-default taxonomy-list-name taxonomy-category-finished'>" + $(input).val() +
+                        "</span><input type='text' maxlength='255' value='" + $(input).val() + "' class='input-taxonomy-create style-input'" +
+                        " onblur='blur_event_taxonomy_create_zone($(this).parent())'  onkeyup='keypress_event_taxonomy_create_zone($(this).parent(),event)' >" + children + "</li>");
+            } else {
+                sibling.append("<ul><li class='taxonomy-list-create'  >" +
+                        "<span style='display: none;' onclick='click_event_taxonomy_create_zone($(this).parent())' class='li-default taxonomy-list-name taxonomy-category-finished'>" + $(input).val() +
+                        "</span><input type='text' maxlength='255' value='" + $(input).val() + "'  class='input-taxonomy-create style-input'" +
+                        " onblur='blur_event_taxonomy_create_zone($(this).parent())'  onkeyup='keypress_event_taxonomy_create_zone($(this).parent(),event)' >" + children + "</li></ul>");
+            }
+            $(selected_element).remove();
+        }
+        save_taxonomy();
+    }
+    //volta uma 'casa' para a categoria, subindo na hierarquia
+    function remove_hierarchy_taxonomy_create_zone() {
+        //verifico se nao esta querendo subir de hierarquia
+        var input = $(selected_element).find('.input-taxonomy-create').first();
+        if ($(input).val() === '') {
+            return false;
+        }
+        //pego o pai direto e verifico se ja nao eh a raiz
+        var parent_direct = $(selected_element).parent();
+        if (parent_direct.is('div') || parent_direct.hasClass('root_ul')) {
+            return false;
+        }
+        // guardo os filhos diretos da categoria movida
+        var children = '';
+        if ($(selected_element).find('ul').first().length > 0) {
+            children = "<ul >" + $(selected_element).find('ul').first().html() + '</ul>';
+        }
+        var parent_li = parent_direct.parent();
+        var parent_to_insert = parent_li.parent();
+        parent_to_insert.append("<li class='taxonomy-list-create' >" +
+                "<span style='display: none;' onclick='click_event_taxonomy_create_zone($(this).parent())' class='li-default taxonomy-list-name taxonomy-category-finished'>" + $(input).val() +
+                "</span><input maxlength='255' type='text' value='" + $(input).val() + "'  class='input-taxonomy-create style-input'" +
+                " onblur='blur_event_taxonomy_create_zone($(this).parent())'  onkeyup='keypress_event_taxonomy_create_zone($(this).parent(),event)' >" + children + "</li>");
+        $(selected_element).remove();
+        save_taxonomy();
+    }
+    //insere o input para adicao da categoria
+    function add_field_category() {
+        $('.input-taxonomy-create').hide();
+        $('.taxonomy-list-name').show();
+        if ($(selected_element).is(':visible') && selected_element.length > 0) {
+            if ($(selected_element).find('ul').first().length > 0) {
+                $(selected_element).find('ul').first().append('<li class="taxonomy-list-create">' +
+                        new_category_html + '</li>');
+            } else {
+                $(selected_element).append('<ul><li class="taxonomy-list-create">' +
+                        new_category_html + '</li></ul>');
+            }
+        } else {
+            if ($('#taxonomy_create_zone').has('ul').length == 0) {
+                $('#taxonomy_create_zone').append('<ul class="root_ul"><li class="taxonomy-list-create">' +
+                        new_category_html + '</li></ul>');
+            } else {
+                $('#taxonomy_create_zone .root_ul').append('<li class="taxonomy-list-create">' +
+                        new_category_html + '</li>');
+            }
+        }
+
+        $('#taxonomy_create_zone').find('.input-taxonomy-create').focus().is(':visible');
+    }
+    //subir categoria entre as suas irmas na hieraquia
+    function up_category_taxonomy() {
+        if ($(selected_element).is(':visible') && selected_element.length > 0) {
+            var prev = $(selected_element).prev();
+            $(selected_element).insertBefore(prev);
+            click_event_taxonomy_create_zone(selected_element);
+        }
+    }
+    //descer categoria entre as suas irmas na hieraquia
+    function down_category_taxonomy() {
+        if ($(selected_element).is(':visible') && selected_element.length > 0) {
+            var prev = $(selected_element).next();
+            $(selected_element).insertAfter(prev);
+            click_event_taxonomy_create_zone(selected_element);
+        }
+    }
+    //salva a taxonomia craida
+    function save_taxonomy() {
+        var string = $('#taxonomy_create_zone').html();
+        $('#socialdb_property_term_new_taxonomy').val(string.trim());
+    }
 </script>

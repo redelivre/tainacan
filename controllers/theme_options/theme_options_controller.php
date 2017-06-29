@@ -31,6 +31,8 @@ class ThemeOptionsController extends Controller {
                 Log::addLog(['user_id' => get_current_user_id(), 'event_type' => 'admin', 'event' => 'welcome_mail']);
                 return $this->render(dirname(__FILE__) . '../../../views/theme_options/edit_email.php', $data);
                 break;
+            case 'updates_page':
+                return $this->render(dirname(__FILE__) . '../../../views/theme_options/updates_page.php', $data);
             case "update_options":
                 return $theme_options_model->update($data);
                 break;
@@ -39,6 +41,9 @@ class ThemeOptionsController extends Controller {
                 break;
             case "update_welcome_email":
                 return $theme_options_model->update_welcome_email($data);
+                break;
+            case "update_devolution_email_alert_content":
+                return $theme_options_model->update_devolution_email_alert($data);
                 break;
             case "edit_licenses":
                 $data = $theme_options_model->get_theme_general_options_data();

@@ -121,7 +121,17 @@ class MappingController extends Controller {
                 $hierarchy = ($data['socialdb_delimiter_hierarchy_csv'] == '' ? '::' : $data['socialdb_delimiter_hierarchy_csv']);
                 $import_url_external = ($data['import_url_external']&&$data['import_url_external']=='url_externa') ? $data['import_url_external'] : 'false';
                 $csv_has_header = $data['socialdb_csv_has_header'];
-                $mapping_model->save_delimiter_csv($mapping_id, $delimiter, $multi_values, $hierarchy, $import_url_external, $csv_has_header);
+                $code = $data['socialdb_delimiter_code_csv'];
+                if($_FILES && isset($_FILES['csv_file'])){
+                    foreach ($_FILES as $file => $array) {
+                        if (!empty($_FILES[$file]["name"])) {
+                            $_FILES[$file]["name"] = remove_accent($_FILES[$file]["name"]);
+                            delete_post_meta($mapping_id, '_file_id');
+                            $newupload = $mapping_model->insert_attachment($file, $mapping_id);
+                        }
+                    }
+                }                
+                $mapping_model->save_delimiter_csv($mapping_id, $delimiter, $multi_values, $hierarchy, $import_url_external, $csv_has_header,$code);
                 $files = $mapping_model->show_files_csv($mapping_id);
                 foreach ($files as $file) {
                     //$name_file =  wp_get_attachment_link($file->ID, 'thumbnail', false, true);
@@ -129,9 +139,9 @@ class MappingController extends Controller {
                     $type = pathinfo($name_file);
                     if($type['extension']=='zip'){
                        $data['csv_data'] = $mapping_model->get_csv_in_zip_file($name_file, $delimiter);
-                    }else if($type['extension']=='csv'){
+                    }else{
                         $objeto = fopen($name_file, 'r');
-                        if(strpos($name_file, 'socialdb_csv')!==false)
+                        if(strpos($name_file, 'socialdb_csv')!==false && strpos($name_file, 'tainacan_csv')!==false)
                             $csv_data = fgetcsv($objeto, 0, $delimiter);
                         while(($csv_data = fgetcsv($objeto, 0, $delimiter)) !== false){
                              $data['csv_data'] = $csv_data;
@@ -182,6 +192,7 @@ class MappingController extends Controller {
                 $data['socialdb_channel_csv_hierarchy'] = get_post_meta($data['mapping_id'], 'socialdb_channel_csv_hierarchy', true);
                 $data['socialdb_channel_csv_import_zip'] = get_post_meta($data['mapping_id'], 'socialdb_channel_csv_import_zip', true);
                 $data['socialdb_channel_csv_has_header'] = get_post_meta($data['mapping_id'], 'socialdb_channel_csv_has_header', true);
+                $data['socialdb_channel_csv_code'] = get_post_meta($data['mapping_id'], 'socialdb_channel_csv_code', true);
                  return $this->render(dirname(__FILE__) . '../../../views/import/csv/edit_maping_attributes.php', $data);
             case "edit_mapping_csv":
                 $mapping_id = $data['mapping_id'];

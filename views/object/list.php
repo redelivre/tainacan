@@ -13,17 +13,6 @@ if ( $loop->have_posts() ): ?>
             <?php
             while ( $loop->have_posts() ) : $loop->the_post(); $countLine++;
                 $curr_id = get_the_ID();
-//                if(get_post()->post_type === 'socialdb_collection'){
-//                    $term = wp_get_post_terms( $curr_id, 'socialdb_collection_type' )[0];
-//                    if($term->slug && $term->slug == 'socialdb_collection_private')
-//                        continue;
-//                }
-//                else if(get_option('collection_root_id') == $collection_id){
-//                    $collection = $viewHelper->helper_get_collection_by_object($curr_id)[0];
-//                    if(!isset($collection->ID) || !$viewHelper->check_privacity_collection($collection->ID)){
-//                        continue;
-//                    }
-//                }
                 $latitude = get_post_meta($curr_id, "socialdb_property_" . $geo_coordinates["lat"]);
                 $longitude = get_post_meta($curr_id, "socialdb_property_" . $geo_coordinates["long"]);
                 $location = get_post_meta($curr_id, "socialdb_property_" . $geo_loc);
@@ -59,12 +48,13 @@ if ( $loop->have_posts() ): ?>
                else:
                     ?>
                     <div class="jumbotron">
-                        <h2 style="text-align: center;"><?php _e('This collection is empty, create the first item!', 'tainacan') ?></h2>
+                        <h2 style="text-align: center;"><?php _e('No collection or item found!', 'tainacan') ?></h2>
+                        <!--h2 style="text-align: center;"><?php _e('This collection is empty, create the first item!', 'tainacan') ?></h2>
                         <p style="text-align: center;">
                             <a onclick="showAddItemText()" class="btn btn-primary btn-lg" href="#" role="button">
                                 <span class="glyphicon glyphicon-plus"></span> <?php _e('Click here to add a new item', 'tainacan') ?>
                             </a>
-                        </p>
+                        </p-->
                     </div>
                   <?php 
                endif;
@@ -81,7 +71,8 @@ if ( $loop->have_posts() ): ?>
                         </p>
                     </div-->
                     <div class="jumbotron">
-                        <h2 style="text-align: center;"><?php _e('This repository is empty, create the first collection!', 'tainacan') ?></h2>
+                        <h2 style="text-align: center;"><?php _e('No collection or item found!', 'tainacan') ?></h2>
+                        <!--h2 style="text-align: center;"><?php _e('This repository is empty, create the first collection!', 'tainacan') ?></h2-->
                         </p>
                     </div>
                     <?php 

@@ -9,6 +9,11 @@ $collection_route = get_post(get_option('collection_root_id'));
     }
     ?>">
 <!-- Paginas da colecao -->
+<input type="hidden" id="goToAddItem" name="goToAddItem" value="<?php
+    if (get_query_var('add-item') && get_query_var('collection')) {
+         echo trim(get_query_var('add-item'));
+    }
+    ?>">
 <input type="hidden" id="goToEditObject" name="goToEditObject" value="<?php
     if (get_query_var('edit-item') && get_query_var('collection') && get_query_var('item')) {
         echo get_post_by_name(trim(get_query_var('item')),OBJECT,'socialdb_object')->ID;
@@ -158,7 +163,7 @@ $collection_route = get_post(get_option('collection_root_id'));
                 }else if(data.item=='<?php echo __('events','tainacan') ?>'){
                     showEventsRepository($('#src').val());
                 }
-            <?php endif; ?>    
+            <?php endif; ?>
         }else{
             //console.log(previousRoute ,window.location.pathname);
             if(previousRoute === window.location.pathname){
@@ -166,11 +171,11 @@ $collection_route = get_post(get_option('collection_root_id'));
             }else{
                 showSingleObjectByName(data.item, $('#src').val())
             }
-            
+
         }
-        
+
     });
-    
+
      //pagina do item
     $.router.add( $('#route_blog').val()+':collection/:item/:operation', function(data) {
         <?php if ((verify_collection_moderators(get_the_ID(), get_current_user_id()) || current_user_can('manage_options')) && get_post_type(get_the_ID()) == 'socialdb_collection'): ?>
@@ -199,20 +204,19 @@ $collection_route = get_post(get_option('collection_root_id'));
         }
         <?php endif; ?>
     });
-    
+
     $(function(){
          execute_route();
     });
     /**************************************************************************/
-    
+
     /**
      * verifica se existe alguma rota a ser executada
      * @returns {undefined}
      */
     function execute_route() {
          $.router.reset();
-         
-                    console.log('edit item',$('#goToEditObject').val());
+         //console.log('edit item',$('#goToAddItem').val());
         if ($('#object_page').val() !== '') {
             collection = $('#slug_collection').val();
             if(collection) {
@@ -220,6 +224,22 @@ $collection_route = get_post(get_option('collection_root_id'));
             }
         } else if($('#goToEditObject').val()!==''){
                route_edit_object_item($('#goToEditObject').val())
+        }else if($('#goToAddItem').val()!==''){
+            $('#configuration').html(
+            '<div style="margin-left:1%;padding-left:15px;min-height:500px;padding-top:80px;" class="col-md-12 menu_left_loader">'+
+                '<center>'+
+                       '<img src="<?php echo get_template_directory_uri() . '/libraries/images/catalogo_loader_725.gif' ?>">'+
+                       '<h4><?php _e('Loading metadata...', 'tainacan') ?></h4>'+
+                '</center>'+
+             '</div>').show();
+            $("#tainacan-breadcrumbs").show();
+            $("#tainacan-breadcrumbs .current-config").show().text('> <?php  echo __('New item','tainacan') ?>');
+            console.log($("#tainacan-breadcrumbs .current-config"));
+            $('#main_part').hide();
+            $('#collection_post').show();
+            $('#display_view_main_page').hide();
+            $('#loader_collections').hide();
+                createItemPage($('#src').val());
         }else if($('#goToLogin').val()!==''){
             showLoginScreen($('#src').val());
         }else if($('#goToAdvancedSearch').val()!==''){
@@ -276,8 +296,8 @@ $collection_route = get_post(get_option('collection_root_id'));
         }
         <?php endif; ?>
     }
-    
-    
+
+
     function updateStatePage(state){
         //url amigavel
         if (window.history && window.history.pushState) {
@@ -324,8 +344,8 @@ $collection_route = get_post(get_option('collection_root_id'));
         }else if(state=='metadata'){
             state = '<?php _e('metadata','tainacan') ?>';
         }
-        
-        
+
+
         //url amigavel
         if (window.history && window.history.pushState) {
 
@@ -345,7 +365,7 @@ $collection_route = get_post(get_option('collection_root_id'));
             //
         }
     }
-    
+
     /**
      * atualiza a url do admin do repositorio
      * @param {type} state
@@ -372,8 +392,8 @@ $collection_route = get_post(get_option('collection_root_id'));
         }else if(state=='metadata'){
             state = '<?php _e('metadata','tainacan') ?>';
         }
-        
-        
+
+
         //url amigavel
         if (window.history && window.history.pushState) {
 
@@ -408,16 +428,16 @@ $collection_route = get_post(get_option('collection_root_id'));
          }else{
              window.location = $('#route_blog').val();
          }
-         
+
     }
-    
+
     /**
      * salva a rota atual
      */
     function saveRoute(){
         previousRoute = window.location.pathname;
     }
-    
+
     /**
      * retorna para a pagina anterior
      * @param {optional} collection
@@ -432,7 +452,7 @@ $collection_route = get_post(get_option('collection_root_id'));
         }else
            window.location = $('#route_blog').val();
     }
-    
+
     function route_edit_object_item(object_id) {
         $('#configuration').html(
         '<div style="margin-left:1%;padding-left:15px;min-height:500px;padding-top:80px;" class="col-md-12 menu_left_loader">'+
@@ -442,15 +462,16 @@ $collection_route = get_post(get_option('collection_root_id'));
             '</center>'+
          '</div>').show();
         $("#tainacan-breadcrumbs").show();
-        $("#tainacan-breadcrumbs .current-config").text('> <?php  echo __('Edit item','tainacan') ?>'); 
+        $("#tainacan-breadcrumbs .current-config").text('> <?php  echo __('Edit item','tainacan') ?>');
         $('#main_part').hide();
         $('#collection_post').show();
+        $('#collection_post .headers_container').hide();
         $('#display_view_main_page').hide();
         $('#loader_collections').hide();
         $.ajax({
             type: "POST",
             url: $('#src').val() + "/controllers/object/object_controller.php",
-            data: {collection_id: $('#collection_id').val(), operation: 'edit', object_id: object_id}
+            data: {collection_id: $('#collection_id').val(), operation: 'edit-item', item_id: object_id}
         }).done(function (result) {
             hide_modal_main();
             if(result.trim().indexOf('checkout@')>=0){
@@ -468,4 +489,4 @@ $collection_route = get_post(get_option('collection_root_id'));
             }
         });
     }
-</script>    
+</script>

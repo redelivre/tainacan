@@ -53,7 +53,6 @@ class AdvancedSearchController extends Controller {
                         $paramters_collection = $wpquery_model->do_filter($args_collection);
                         $loop_objects = new WP_Query($paramters_object);
                         $loop_collections = new WP_Query($paramters_collection);
-                       // var_dump($loop_collections);
                     } else {
                         $args_object = $wpquery_model->advanced_searched_filter($data);
                         $paramters_object = $wpquery_model->do_filter($args_object);
@@ -67,7 +66,7 @@ class AdvancedSearchController extends Controller {
                     if($data['advanced_search_general']!==''){ //se utilizar a busca generalizada
                         $args_object = $wpquery_model->keyword_filter(['value'=>$data['advanced_search_general']]);
                         $args_object['collection_id'] = $data['advanced_search_collection'];
-                        $args_object['category_root_id'] = $wpquery_model->get_category_root_of($data['advanced_search_collection']);
+                        $args_object['category_root_id'] =  (has_filter('limit_search_collections')) ? apply_filters('limit_search_collections','') : $wpquery_model->get_category_root_of($data['advanced_search_collection']);
                         $paramters_object = $wpquery_model->do_filter($args_object); 
                         $loop_objects = new WP_Query($paramters_object);
                     }else{
@@ -99,6 +98,8 @@ class AdvancedSearchController extends Controller {
                 $wpquery_model = new WPQueryModel();
                 $return = array();
                 $args_object = $wpquery_model->advanced_searched_filter($data);
+                $args_object['posts_per_page'] = 50;
+                $args_object['post_status'] = 'publish';
                 $paramters_object = $wpquery_model->do_filter($args_object);
                 $loop_objects = new WP_Query($paramters_object);
                 if ($loop_objects&&$loop_objects->have_posts()) : 
@@ -111,6 +112,27 @@ class AdvancedSearchController extends Controller {
                 $return['page'] = (isset($data['compound_id'])) ? $this->render(dirname(__FILE__) . '../../../views/advanced_search/compound_list_property_object_items.php', $data) : $this->render(dirname(__FILE__) . '../../../views/advanced_search/list_property_object_items.php', $data);
                 $return['data'] =  $data['data'];
                 return json_encode($return);
+            case 'searchItemFormItem':
+                include_once dirname(__FILE__) . '../../../views/object/formItem/helper/formItem.class.php';
+                include_once dirname(__FILE__) . '../../../views/object/formItem/input/object.class.php';
+                $wpquery_model = new WPQueryModel();
+                $objectClass = new ObjectClass();
+                $return = array();
+                $args_object = $wpquery_model->advanced_searched_filter($data);
+                $args_object['posts_per_page'] = 50;
+                $args_object['post_status'] = 'publish';
+                $paramters_object = $wpquery_model->do_filter($args_object);
+                $loop_objects = new WP_Query($paramters_object);
+                if ($loop_objects&&$loop_objects->have_posts()) : 
+                    $data['loop_objects'] =  $loop_objects;
+                    $return['args_item'] = serialize($args_object);
+                endif;
+                if(!isset($data['loop_objects'])) {
+                    $return['not_found'] = true;
+                }
+                $return['page'] = $this->render(dirname(__FILE__) . '../../../views/advanced_search/listItemFormItem.php', $data);
+                $return['data'] =  $data['data'];
+                return json_encode($return);    
              case "wpquery_page_advanced_collection":
                 $wpquery_model = new WPQueryModel();
                 $return = array();

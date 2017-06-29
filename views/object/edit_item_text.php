@@ -49,6 +49,11 @@ $item_attachments = get_posts( ['post_type' => 'attachment', 'exclude' => get_po
     <input type="hidden" name="post_status" value="publish">
     <?php endif; ?>
     <input type="hidden" id="object_id_edit" name="object_id" value="<?= $object->ID ?>">
+    <input type="hidden" id="selected_nodes_dynatree" name="selected_nodes_dynatree" value="">
+    <input type="hidden" id="object_classifications_edit" name="object_classifications" value="<?= $classifications ?>">
+    <input type="hidden" id="object_content_edit" name="object_content" value="<?= strip_tags(get_post_meta($object->ID, 'socialdb_object_content', true)) ?>">
+    <input type="hidden" id="edit_object_collection_id" name="collection_id" value="<?= $collection_id ?>">
+    <input type="hidden" id="operation_edit" name="operation_priority" value="update">
     <div style="<?php echo (isset($is_view_mode) ||$view_helper->hide_main_container)?'margin-left:1%;padding-left:15px;min-height:500px;padding-top:80px;':'' ?>"
             class="<?php echo (isset($is_view_mode) ||$view_helper->hide_main_container)?'col-md-12':'col-md-2' ?> menu_left_loader">
         <center>
@@ -131,6 +136,9 @@ $item_attachments = get_posts( ['post_type' => 'attachment', 'exclude' => get_po
                      <?php if($is_view_mode): ?>
                         <a style="cursor:pointer;" onclick="wpquery_link_filter('<?php echo $object->post_title ?>','<?php echo $view_helper->terms_fixed['title']->term_id ?>')"><?php echo $object->post_title ?></a>
                      <?php else: ?>
+                        <input type="hidden" 
+                           class="title_mask" 
+                           value="<?php echo get_post_meta($collection_id, 'socialdb_collection_property_'.$view_helper->terms_fixed['title']->term_id.'_mask_key', true) ?>">
                         <input class="form-control auto-save"   
                               type="text"  
                               value="<?= $object->post_title ?>"
@@ -819,12 +827,6 @@ $item_attachments = get_posts( ['post_type' => 'attachment', 'exclude' => get_po
                 </div>
                 <br />
              <?php endif; ?>     
-                <input type="hidden" id="object_id_edit" name="object_id" value="<?= $object->ID ?>">
-                <input type="hidden" id="selected_nodes_dynatree" name="selected_nodes_dynatree" value="">
-                <input type="hidden" id="object_classifications_edit" name="object_classifications" value="<?= $classifications ?>">
-                <input type="hidden" id="object_content_edit" name="object_content" value="<?= strip_tags(get_post_meta($object->ID, 'socialdb_object_content', true)) ?>">
-                <input type="hidden" id="edit_object_collection_id" name="collection_id" value="<?= $collection_id ?>">
-                <input type="hidden" id="operation_edit" name="operation" value="update">
                 <?php if($is_beta_text): ?>
                 <button type="button" onclick="back_main_list_discard(<?php echo $object->ID ?>);" style="margin-bottom: 20px;color" class="btn btn-default btn-lg pull-left"><?php _e('Discard','tainacan'); ?></button>
                 <?php else: ?>

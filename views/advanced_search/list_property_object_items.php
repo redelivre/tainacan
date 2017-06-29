@@ -15,7 +15,7 @@
     <table class="table table-bordered"  style="margin-top: 15px;" id="found_items_property_object_<?php echo $property_id ?>">
         <?php
         while ($loop_objects->have_posts()) : $loop_objects->the_post();
-            if($avoid_selected_items === '1' && $object->is_selected_property($property_id,  get_the_ID())){
+            if(($avoid_selected_items === '1'|| $avoid_selected_items == 'true') && $object->is_selected_property($property_id,  get_the_ID())){
                 continue;
             }
             if(in_array( get_the_ID(), $found_items))
@@ -57,7 +57,7 @@ endif;
     $(function(){
         //verificando se dentro os ja inseridos como relacionamento estao dentro do resultado da busca
         $.each($('#results_property_<?php echo $property_id; ?> ul li'),function(index,value){
-            $('#core_validation_'+property_id).val('true');
+            $('#core_validation_<?php echo $property_id; ?>').val('true');
             set_field_valid(property_id,'core_validation_'+property_id);
             //se ja existir retiro o botao de adiconar do lado esquerdo
             if($('#line_property_object_<?php echo $property_id ?>_'+$(value).attr('item')).length>0){

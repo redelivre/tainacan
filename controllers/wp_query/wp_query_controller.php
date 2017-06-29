@@ -244,15 +244,16 @@ class WPQueryController extends Controller {
                 return json_encode($return);
             case "wpquery_orderby":
                 $return = array();
-                if(empty($wpquery_model->get_collection_posts($data['collection_id']))){
+                if(empty($wpquery_model->get_collection_posts($data['collection_id']))) {
                     $return['empty_collection'] = true;
-                }else{
+                } else {
                     $return['empty_collection'] = false;
                 }
                 $collection_model = new CollectionModel;
                 $args = $wpquery_model->orderby_filter($data);
-                $paramters = $wpquery_model->do_filter($args);
-                $data['loop'] =  new WP_Query($paramters);
+                $params = $wpquery_model->do_filter($args);
+
+                $data['loop'] =  new WP_Query($params);
                 $data['collection_data'] = $collection_model->get_collection_data($args['collection_id']);
                 $data['listed_by'] = $wpquery_model->get_ordered_name($args['collection_id'], $args['ordenation_id'], $args['order_by']);
                 $data['is_moderator'] = CollectionModel::is_moderator($args['collection_id'], get_current_user_id());
@@ -281,7 +282,14 @@ class WPQueryController extends Controller {
                 $data['listed_by'] = $wpquery_model->get_ordered_name($args['collection_id'], $args['ordenation_id'], $args['order_by']);
                 $data['is_moderator'] = CollectionModel::is_moderator($args['collection_id'], get_current_user_id());
                 $data["table_meta_array"] = unserialize(base64_decode(get_post_meta($args['collection_id'], "socialdb_collection_table_metas", true)));
-                $return['page'] = $this->render(dirname(__FILE__) . '../../../views/object/list.php', $data);
+
+
+                if(isset($data['is_trash']) && $data['is_trash'] === true) {
+                    $return['page'] = $this->render(dirname(__FILE__) . '../../../views/object/list_trash.php', $data);
+                } else {
+                    $return['page'] = $this->render(dirname(__FILE__) . '../../../views/object/list.php', $data);
+                }
+
                 $return['args'] = serialize($args);
 //                if(mb_detect_encoding($return['page'], 'auto')=='UTF-8'){
 //                    $return['page'] = iconv('ISO-8859-1', 'UTF-8',  utf8_decode($return['page']));
@@ -321,15 +329,16 @@ class WPQueryController extends Controller {
                 $args = $wpquery_model->keyword_filter($data);
                 $paramters = $wpquery_model->do_filter($args);
                 $data['loop'] =  new WP_Query($paramters);
+                $return['has_post'] = $data['loop']->have_posts();
                 $data['collection_data'] = $collection_model->get_collection_data($args['collection_id']);
                 $data['listed_by'] = $wpquery_model->get_ordered_name($args['collection_id'], $args['ordenation_id'], $args['order_by']);
                 $data['is_moderator'] = CollectionModel::is_moderator($args['collection_id'], get_current_user_id());
                 $data["table_meta_array"] = unserialize(base64_decode(get_post_meta($args['collection_id'], "socialdb_collection_table_metas", true)));
                 $return['page'] =   $this->render(dirname(__FILE__) . '../../../views/object/list.php', $data);
                 $return['args'] = serialize($args);
-                if(mb_detect_encoding($return['page'], 'auto')=='UTF-8'){
+                /* if(mb_detect_encoding($return['page'], 'auto')=='UTF-8'){
                     $return['page'] = iconv('ISO-8859-1', 'UTF-8',  utf8_decode($return['page']));
-                }
+                } */
                 Log::addLog(['collection_id' => $data['collection_id'], 'event_type' => 'collection_search', 'event' => $data['value'] ]);
 
                 return json_encode($return);
@@ -339,6 +348,7 @@ class WPQueryController extends Controller {
                 $args = $wpquery_model->filter($data);
                 $paramters = $wpquery_model->do_filter($args);
                 $data['loop'] =  new WP_Query($paramters);
+                $data['has_post'] = $data['loop']->have_posts();
                 $data['collection_data'] = $collection_model->get_collection_data($args['collection_id']);
                 $data['listed_by'] = $wpquery_model->get_ordered_name($args['collection_id'], $args['ordenation_id'], $args['order_by']);
                 $data['is_moderator'] = CollectionModel::is_moderator($args['collection_id'], get_current_user_id());

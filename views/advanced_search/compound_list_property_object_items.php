@@ -14,7 +14,7 @@
     <table class="table table-bordered"  style="margin-top: 15px;" id="found_items_property_object_<?php echo $compound_id ?>_<?php echo $property_id ?>_<?php echo $contador ?>">
         <?php
         while ($loop_objects->have_posts()) : $loop_objects->the_post();
-            if($avoid_selected_items === '1' && $object->is_selected_property($property_id,  get_the_ID())){
+            if(($avoid_selected_items === '1'|| $avoid_selected_items == 'true') && $object->is_selected_property($property_id,  get_the_ID())){
                 continue;
             }
             ?>
@@ -116,7 +116,7 @@ endif;
     function add_in_item_value_compound(id){
         $('select[name="socialdb_property_<?php echo $compound_id; ?>_<?php echo $property_id; ?>_<?php echo $contador; ?>[]"]').append('<option value="'+id+'" selected="selected">'+id+'</option>');
         //validacao do campo
-       $('#core_validation_<?php echo $compound_id; ?>_<?php echo $property_id; ?>_<?php echo $contador; ?>').val('true');
+        $('#core_validation_<?php echo $compound_id; ?>_<?php echo $property_id; ?>_<?php echo $contador; ?>').val('true');
         set_field_valid_compounds('<?php echo $property_id; ?>','core_validation_<?php echo $compound_id; ?>_<?php echo $property_id; ?>_<?php echo $contador; ?>','<?php echo $compound_id; ?>');
     }
     //remove no formulario de fato

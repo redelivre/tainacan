@@ -15,8 +15,67 @@ class ObjectController extends Controller {
     public function operation($operation, $data) {
         $object_model = new ObjectModel();
         $objectfile_model = new ObjectFileModel;
+
         switch ($operation) {
-            // #1 ADICIONAR ITEMS TIPO TEXTO
+            // #1 ADICIONAR e EDITAR ITEM
+            case "edit-item":
+            case "create-item":
+                //classe que executa toda a logica
+                include_once dirname(__FILE__) . '../../../views/object/formItem/helper/formItem.class.php';
+                //sessao
+                if(!session_id()) {
+                        session_start();
+                }
+                //verificacoes para edicao ou criacao deitem
+                if(isset($data['item_id'])){
+                  $formClass = new FormItem($data['collection_id'],__('Edit item','tainacan'));
+                  $checkout = get_post_meta($data['object_id'], 'socialdb_object_checkout', true);
+                  if (is_numeric($checkout) && !isset($data['motive'])) {
+                      $user = get_user_by('id', $checkout)->display_name;
+                      $time = get_post_meta($data['object_id'], 'socialdb_object_checkout_time', true);
+                      return 'checkout@' . $user . '@' . date('d/m/Y', $time);
+                  }
+                  $_SESSION['operation-form'] = 'edit';
+                }else{
+                  $beta_id = get_user_meta(get_current_user_id(), 'socialdb_collection_' . $data['collection_id'] . '_betatext', true);
+                  if ($beta_id && is_numeric($beta_id)) {
+                    $formClass = new FormItem($data['collection_id'],__('Continue editting...','tainacan'));
+                    $data['item_id'] = $beta_id;
+                  }else{
+                    $formClass = new FormItem($data['collection_id']);
+                  } 
+                   $_SESSION['operation-form'] = 'add';
+                }
+                //se nao existir algum ID eu crio
+                if(isset($data['item_id'])) { 
+                    $data['ID'] = $data['item_id']; 
+                }else{  
+                    $data['ID'] = $object_model->create();
+                    update_user_meta(get_current_user_id(), 'socialdb_collection_' . $data['collection_id'] . '_betatext', $data['ID']); 
+                }
+                //jogo a class no array que sera utlizado no formulario
+                $data['formItem'] = $formClass;
+                $data['modeView'] = get_post_meta($data['collection_id'], 'socialdb_collection_submission_visualization', true);
+                //verifico se ja existe as propriedades no cache
+                $cache = get_post_meta($data['collection_id'], 'properties-cached', true);
+                if(!$cache || $cache === ''){
+                   $data['properties'] = $object_model->show_object_properties($data);
+                   update_post_meta($data['collection_id'], 'properties-cached', serialize($data['properties']));
+                }else{
+                   $data['properties'] = unserialize($cache);
+                }
+                //renderizo
+                return $this->render(dirname(__FILE__) . '../../../views/object/formItem/formItem.php', $data);
+            // propriedades de categoria
+            case 'appendCategoryMetadata'://
+                    //class
+                    include_once dirname(__FILE__) . '../../../views/object/formItem/helper/formItem.class.php';
+                    $formItem = new FormItem($data['collection_id']);
+                    $data = $object_model->show_object_properties($data);
+                    $properties_to_avoid = explode(',', $data['properties_to_avoid']);
+                    return $formItem->startCategoryMetadata($properties_to_avoid, $data);
+                    break;
+################################################################################
             case "create_item_text":
                 //verifico se existe rascunho para se mostrado
                 $beta_id = get_user_meta(get_current_user_id(), 'socialdb_collection_' . $data['collection_id'] . '_betatext', true);
@@ -28,18 +87,18 @@ class ObjectController extends Controller {
                 //se nao ele busca o cache da pagina de adiconar item
                 $has_cache = $this->has_cache($data['collection_id'], 'create-item-text');
                 $option = get_option('tainacan_cache');
-                if ($has_cache && $option != 'false' && $data['classifications'] == '') {
-                    $has_cache = htmlspecialchars_decode(stripslashes($has_cache)) .
-                            '<input type="hidden" id="temporary_id_item" value="' . $object_model->create() . '">' .
-                            file_get_contents(dirname(__FILE__) . '../../../views/object/js/create_item_text_cache_js.php') .
-                            file_get_contents(dirname(__FILE__) . '../../../views/object/js/create_draft_js.php');
-                    return $has_cache;
-                } else {
+//                if ($has_cache && $option != 'false' && $data['classifications'] == '') {
+//                    $has_cache = htmlspecialchars_decode(stripslashes($has_cache)) .
+//                            '<input type="hidden" id="temporary_id_item" value="' . $object_model->create() . '">' .
+//                            file_get_contents(dirname(__FILE__) . '../../../views/object/js/create_item_text_cache_js.php') .
+//                            file_get_contents(dirname(__FILE__) . '../../../views/object/js/create_draft_js.php');
+//                    return $has_cache;
+//                } else {
                     $data['object_name'] = get_post_meta($data['collection_id'], 'socialdb_collection_object_name', true);
                     $data['socialdb_collection_attachment'] = get_post_meta($data['collection_id'], 'socialdb_collection_attachment', true);
                     $data['object_id'] = $object_model->create();
                     return $this->render(dirname(__FILE__) . '../../../views/object/create_item_text.php', $data);
-                }
+                //}
                 break;
             // FIM : ADICIONAR ITEMS TIPO TEXTO
             // #1 ADICIONAR ITEMS TIPO URL
@@ -194,6 +253,8 @@ class ObjectController extends Controller {
                 $data['is_moderator'] = CollectionModel::is_moderator($data['collection_id'], get_current_user_id());
                 $return['page'] = $this->render(dirname(__FILE__) . '../../../views/object/list.php', $data);
                 $return['args'] = serialize($recover_wpquery);
+                $return['preset_order'] = $recover_wpquery['order'];
+
                 if (empty($object_model->get_collection_posts($data['collection_id']))) {
                     $return['empty_collection'] = true;
                 } else {
@@ -201,9 +262,7 @@ class ObjectController extends Controller {
                 }
                 $logData = ['collection_id' => $collection_id, 'event_type' => 'user_collection', 'event' => 'view'];
                 Log::addLog($logData);
-//                if (mb_detect_encoding($return['page'], 'auto') == 'UTF-8') {
-//                    $return['page'] = iconv('ISO-8859-1', 'UTF-8', utf8_decode($return['page']));
-//                }
+                /* if (mb_detect_encoding($return['page'], 'auto') == 'UTF-8') {  $return['page'] = iconv('ISO-8859-1', 'UTF-8', utf8_decode($return['page'])); } */
                 return json_encode($return);
                 break;
             case "list_trash": // A listagem dos objetos na lixeira
@@ -290,13 +349,15 @@ class ObjectController extends Controller {
                 if(!session_id()) {
                         session_start();
                 }
-                $cache = $_SESSION['collection_'.$data['collection_id'].'_properties'];
-                if(!$cache){
-                   $data = $object_model->show_object_properties($data);
-                   $_SESSION['collection_'.$data['collection_id'].'_properties'] = $data;
-                }else{
-                   $data = $cache;
-                }
+ //               $cache = $_SESSION['collection_'.$data['collection_id'].'_properties'];
+//                if(!$cache){
+//                   $data = $object_model->show_object_properties($data);
+//                   $_SESSION['collection_'.$data['collection_id'].'_properties'] = $data;
+//                }else{
+//                   $cache['object_id'] =  $data['object_id'];
+//                   $data = $cache;
+//                }
+                $data = $object_model->show_object_properties($data);
                 return $this->render(dirname(__FILE__) . '../../../views/object/list_properties_accordion.php', $data);
             // propriedades na EDICAO do objeto
             case 'show_object_properties_edit'://
@@ -334,9 +395,9 @@ class ObjectController extends Controller {
             case "get_objects_by_property_json":// pega todos os objetos relacionado de uma propriedade e coloca em um array json
                 return $object_model->get_objects_by_property_json($data);
             case "get_objects_default_value":// pega todos os objetos relacionado de uma propriedade e coloca em um array json
-                return $object_model->get_objects_by_selected_categories($data['categories'],$data['term']);    
+                return $object_model->get_objects_by_selected_categories($data['categories'],$data['term']);
             case "get_terms_default_value":// pega todos os objetos relacionado de uma propriedade e coloca em um array json
-                return $object_model->search_term_by_parent($data['parent'],$data['term']);    
+                return $object_model->search_term_by_parent($data['parent'],$data['term']);
             case "get_property_object_value":// retorna os valores para uma propriedade de objeto especificao
                 return $object_model->get_property_object_value($data);
             case 'show_form_data_property':// mostra o formulario para insercao de propriedade de dados
@@ -407,77 +468,144 @@ class ObjectController extends Controller {
                     "desc" => $_object->post_content,
                     "output" => substr($_object->post_name, 0, 15) . mktime(),
                     "data_c" => explode(" ", $_object->post_date)[0],
-                    "object" => get_post($object_id)
+                    "object" => get_post($object_id),
+                    "breaks" => $this->get_item_line_breaks($_object->post_content) // Pegar # de brs
                 ];
-
-                // Pegar # de brs
-                if (strlen($press['desc']) > 0) {
-                    $line_breaks = 0;
-                    $_desc_pieces = explode("\n", $press['desc']);
-                    foreach ($_desc_pieces as $line) {
-                        if (strlen($line) == 1) {
-                            $line_breaks++;
-                        }
-                    }
-                    $press['breaks'] = $line_breaks;
-                }
 
                 $_item_meta = get_post_meta($object_id);
                 if ($_item_meta['_thumbnail_id']) {
-                    $press['tmb']['url'] = get_post($_item_meta['_thumbnail_id'][0])->guid;
-                    $press['tmb']['type'] = wp_check_filetype($press['tmb']['url']);
-
-                    $a = file_get_contents($press['tmb']['url']);
-                    $b64_img = base64_encode($a);
-                    $press['tbn'] = "data:" . $press['tmb']['type']['type'] . ";base64," . $b64_img;
+                    $press['tbn'] = $this->format_item_thumb($_item_meta['_thumbnail_id']);
                 }
 
                 $item_attachs = $objectfile_model->show_files(['collection_id'=> $data['collection_id'], 'object_id' => $object_id]);
                 if($item_attachs) {
                     foreach($item_attachs['image'] as $attach_obj) {
-                        /* $att64 = base64_encode(file_get_contents($attach_obj->guid)); $att64_img = "data:image/jpeg;base64," . $att64;
-                        $press['attach'][] = [ 'url' => $att64_img, 'type' => wp_check_filetype($attach_obj->guid)]; */
                         $press['attach'][] = [ 'title' => $attach_obj->post_title, 'url' => $attach_obj->guid ];
                     }
                 }
 
+                $tabs = [
+                    'order' => get_post_meta($data['collection_id'], 'socialdb_collection_properties_ordenation'),
+                    'organize' => unserialize( get_post_meta($data['collection_id'], 'socialdb_collection_update_tab_organization', true))[0],
+                    'names' => get_post_meta($data['collection_id'], 'socialdb_collection_tab')
+                ];
+
+                $press['meta_ids_ord'] = explode(",",unserialize($tabs['order'][0])['default']);
+                $ord_list = [];
+
+                $total_index = 0;
+                $_to_be_removed = [];
                 foreach ($_item_meta as $meta => $val) {
+                    $check_typeof_meta = explode( "_", $meta);
+                    $is_compound_meta = false;
+
+                    if( count($check_typeof_meta) == 4 && ctype_digit($check_typeof_meta[3]) ) {
+                        $last_meta_id = intval($check_typeof_meta[3]);
+                        if( $last_meta_id >= 0 && $last_meta_id <= 24 ) {
+                            $is_compound_meta = true;
+                        }
+                    }
+
                     if (is_string($meta)) {
                         $pcs = explode("_", $meta);
                         if (($pcs[0] . $pcs[1]) == "socialdbproperty") {
                             $col_meta = get_term($pcs[2]);
                             if (!is_null($col_meta) && is_object($col_meta)) {
                                 if( 4 === count($pcs) && is_string($_item_meta[$meta][0]) ) {
-                                    $total_sub_metas = "";
                                     $_sub_metas = explode(",", $_item_meta[$meta][0]);
+                                    $_current_term_id = $col_meta->term_id;
+                                    $curr_term_metas = explode(",",get_term_meta($_current_term_id,'socialdb_property_compounds_properties_id', true));
+
                                     if(is_array($_sub_metas)) {
-                                        $_pair = [ 'meta' => $col_meta->name,
-                                            'value'=> '_____________________________',
-                                            'submeta_header' => true ];
+                                        $final_title = $col_meta->name;
+                                        // $press['meta_ids'][] = $_current_term_id;
+                                        $_pair = ['meta' => $final_title, 'value'=> '_____________________________', 'submeta_header' => true, 'header_idx' => $total_index, 'meta_id' => $_current_term_id, 'meta_tab' => $tabs['organize'][$_current_term_id]];
                                         $press['inf'][] = $_pair;
 
-                                        foreach ($_sub_metas as $s_meta) {
+                                        $ord_list[$_pair['meta_id']] = $_pair;
+
+                                        $current_submeta_vals = [];
+                                        $curr_meta = 0;
+                                        foreach($_sub_metas as $s_meta) {
                                             $_meta_ = get_metadata_by_mid('post', $s_meta);
-                                            if(is_object($_meta_)) {
+                                            if(ctype_digit($s_meta)) {
+                                                if(is_object($_meta_)) {
+                                                    $_title_id = explode("_", $_meta_->meta_key);
+                                                    $_title = get_term($_title_id[2]);
+                                                    $v = $_meta_->meta_value;
+                                                    $_pair = ['meta' => $_title->name , 'value' => $v, 'is_submeta' => true, 'meta_id' => $_title->term_id];
+
+                                                    $_meta_type = get_term_meta($_title->term_id, 'socialdb_property_data_widget', true);
+
+                                                    if(is_numeric($v) && $_meta_type !== "numeric" ) {
+                                                        $relation_meta_post = get_post($v);
+                                                        if( !is_null($relation_meta_post) ) {
+                                                            $_pair['value'] = $relation_meta_post->post_title;
+                                                        }
+                                                    }
+
+                                                    if( $_pair['value'] != "" && ! empty($_pair['value']) ) {
+                                                        $press['inf'][] = $_pair;
+                                                        $aux_arr[] = $_title->name . "__" . $v;
+                                                        $ord_list[$_pair['meta_id']] = $_pair;
+                                                    }
+
+                                                    if( !empty($_pair['value']) && !is_null($_pair['value'])) {
+                                                        array_push($current_submeta_vals, $_pair['value']);
+                                                    }
+
+                                                    if( $is_compound_meta && empty($current_submeta_vals) && $last_meta_id > 0) {
+                                                        unset($press['inf'][$total_index]);
+                                                    }
+
+                                                    $press['meta_ids'][] = $_title->term_id;
+
+                                                } else {
+                                                    $_curr_term = get_term($curr_term_metas[$curr_meta]);
+                                                    $_pair = ['meta' => $_curr_term->name , 'value' => "--", 'is_submeta' => true, 'meta_id' => $_curr_term->term_id];
+
+                                                    $post_val = $this->get_tab_name(intval($s_meta));
+                                                    if( !is_null($post_val) && $post_val ) {
+                                                        $_pair['value'] = $post_val;
+                                                    }
+
+                                                    $press['meta_ids'][] = $_curr_term->term_id;
+                                                    $press['inf'][] = $_pair;
+                                                    $ord_list[$_pair['meta_id']] = $_pair;
+                                                }
+                                            } else {
                                                 $_title_id = explode("_", $_meta_->meta_key);
                                                 $_title = get_term($_title_id[2])->name;
-                                                $v = $_meta_->meta_value;
-                                                $_pair = ['meta' => $_title , 'value' => $v, 'is_submeta' => true];
-                                                if(is_numeric($v)) {
-                                                    $relation_meta_post = get_post($v);
-                                                    if( !is_null($relation_meta_post) ) {
-                                                        $_pair['value'] = $relation_meta_post->post_title;
-                                                    }
-                                                }
 
-                                                $press['inf'][] = $_pair;
-                                                $aux_arr[] = $_title . "__" . $v;
+                                                $cat_check = explode("_", $s_meta);
+                                                if(count($cat_check) == 2 && $cat_check[1] === "cat") {
+                                                    $compounds_metas_titles = get_term_meta($col_meta->term_id, 'socialdb_property_compounds_properties_id', true);
+                                                    $titles_ids_arr = explode(",", $compounds_metas_titles);
+                                                    $string_title = get_term($titles_ids_arr[$curr_meta])->name;
+                                                    $_term_name_ = get_term(intval($cat_check[0]))->name;
+                                                    $_pair = ['meta' => $string_title, 'value' => $_term_name_, 'is_submeta' => true, 'meta_id' => get_term($titles_ids_arr[$curr_meta])->term_id];
+
+                                                    $press['inf'][] = $_pair;
+                                                    $ord_list[$_pair['meta_id']] = $_pair;
+                                                    $press['meta_ids'][] = get_term($titles_ids_arr[$curr_meta])->term_id;
+                                                    $aux_arr[] = $_title . "__" . $_term_name_;
+                                                }
                                             }
-                                        }
+
+                                            $curr_meta++;
+                                        } // submetas loop
                                     }
                                 } else {
-                                    $_pair = ['meta' => $col_meta->name, 'value' => $val[0]];
-                                    if(is_numeric($val[0])) {
+                                    $_pair = ['meta' => $col_meta->name, 'value' => $val[0], 'meta_id' => $col_meta->term_id];
+
+                                    $_meta_type = get_term_meta($col_meta->term_id, 'socialdb_property_data_widget', true);
+                                    if("date" === $_meta_type) {
+                                        $_pair['value'] = date('d/m/Y', strtotime($_pair['value']));
+                                    } else if ("textarea" === $_meta_type) {
+                                        $_pair["meta_breaks"] = $this->get_item_line_breaks($val[0]);
+                                    }
+
+                                    if(is_numeric($val[0]) && "numeric" !== $_meta_type) {
                                         $_check_text = get_post($val[0]);
                                         if( !is_null($_check_text)) {
                                             if( in_array($_check_text->post_title, $_item_meta['socialdb_object_commom_values']) ) {
@@ -485,17 +613,31 @@ class ObjectController extends Controller {
                                             }
                                         }
                                     }
+
+                                    // $press['ctn'][] = [$_pair, 'tipo' => $_meta_type];
+                                    $press['meta_ids'][] = $col_meta->term_id;
                                     $press['inf'][] = $_pair;
+                                    $ord_list[$_pair['meta_id']] = $_pair;
                                 }
                             } else {
                                 $press['set'][] = $col_meta;
                             }
-                        } else {
-                            $press['excluded'][] = $meta;
-                        }
+                        } /* else { $press['excluded'][] = $meta; } */
                     }
+
+                    if($is_compound_meta && empty($current_submeta_vals) && $last_meta_id > 0) {
+                        array_push($_to_be_removed, $total_index);
+                    }
+                    $total_index++;
                 }
 
+                if( ! is_null($press['meta_ids']) ) {
+                    $press['meta_ids'] = array_unique($press['meta_ids']);
+                }
+
+
+                $s = [];
+                $aux_ids = [];
                 if( isset($press['inf']) ) {
                     $init = 0;
                     foreach ($press['inf'] as $_m_arr) {
@@ -505,12 +647,55 @@ class ObjectController extends Controller {
                             if( in_array($_item_pair, $aux_arr) ) {
                                 if( is_null($_m_arr['is_submeta'])) {
                                     unset( $press['inf'][$init] );
+                                } else {
+                                    $aux_ids[] = $init;
                                 }
                             }
                         }
+
+                        $_curr_header_idx = $_m_arr['header_idx'];
+                        if( isset($_curr_header_idx) && is_int($_curr_header_idx) ) {
+                            if( in_array($_curr_header_idx, $_to_be_removed) ) {
+                                unset( $press['inf'][$init] );
+                            } else {
+                                $aux_ids[] = $init;
+                            }
+                        }
+
+                        if( !is_null($press['inf'][$init]['meta_id']) )
+                            array_push($s, $press['inf'][$init]['meta_id']);
+
                         $init++;
                     }
                 }
+
+                $info_ordenada = [];
+                $info_desord = [];
+                $add_ordered = [];
+                foreach($press['meta_ids_ord'] as $oid) {
+                    $curr_id = explode("compounds-", $oid);
+                    $id = $curr_id[0];
+
+                    if(count($curr_id) == 2)
+                        $id = $curr_id[1];
+
+                    if( array_key_exists($id, $ord_list) ) {
+                        $info_ordenada[] = $ord_list[$id];
+                        array_push($add_ordered, $id);
+                    } else {
+                        $info_desord[] = $ord_list[$id];
+                    }
+
+                }
+
+                $orders_id_keys = array_keys($ord_list);
+                foreach ($orders_id_keys as $desorder_ids ) {
+                    if(! in_array($desorder_ids, $add_ordered) ) {
+                        $info_desord[] = $ord_list[$desorder_ids];
+                    }
+                }
+
+                $press['inf'] = array_merge($info_ordenada, $info_desord);
 
                 return json_encode($press);
 
@@ -834,7 +1019,6 @@ class ObjectController extends Controller {
                 return $this->render(dirname(__FILE__) . '../../../views/object/list_versions.php', $data);
                 break;
             case 'delete_version':
-                //var_dump($data);
                 $original = get_post_meta($data['version_id'], 'socialdb_version_postid', true);
                 if ($original) {
                     //E uma versao
@@ -844,7 +1028,6 @@ class ObjectController extends Controller {
                 }
                 break;
             case 'restore_version':
-                //var_dump($data);
                 $item = get_post($data['active_id']);
                 $newItem = $data['version_id'];
                 $object_model->revertItem($item, $newItem);
@@ -862,8 +1045,6 @@ class ObjectController extends Controller {
                 $version_numbers = $object_model->checkVersions($original);
                 //$version = $object_model->checkVersions($original);
                 $new_version = count($version_numbers) + 2;
-                //var_dump($version_numbers, $new_version);
-                //exit();
                 $newItem = $object_model->createVersionItem($item, $data['collection_id']);
                 if ($newItem) {
                     $object_model->copyItemMetas($newItem, $metas);
@@ -896,24 +1077,97 @@ class ObjectController extends Controller {
                 }
                 return json_encode($result);
                 break;
+            case 'default_img':
+                $curr_id = $data['curr_id'];
+                return(get_item_thumb_image($curr_id));
+                break;
             case 'eliminate_itens':
                 if(isset($data['ids']) && is_array($data['ids']) && is_user_logged_in()){
                     foreach ($data['ids'] as $id) {
                         wp_delete_post($id);
                     }
                 }
-                $data['title'] = __('Success','tainacan'); 
-                $data['msg'] = __('Operation is successfully','tainacan'); 
-                $data['type'] = 'success'; 
+                $data['title'] = __('Success','tainacan');
+                $data['msg'] = __('Operation is successfully','tainacan');
+                $data['type'] = 'success';
                 return json_encode($data);
             case 'search-items':
                 $result = [];
-                $items = $object_model->searchItemCollection($data['collection_id'],$data['term']);
+                $items = $object_model->searchItemCollection($data['collection_id'],trim($data['term']));
                 foreach ($items as $item) {
-                   $result[] = ['value'=>$item->post_title,'label'=>$item->post_title] ;
+                   $result[] = ['value'=>$item->post_title,'label'=>$item->post_title,'item_id'=>$item->ID] ;
                 }
                 return json_encode($result);
         }
+    }
+
+	private function get_item_line_breaks($text) {
+		$total_br = 0;
+		if( strlen($text) > 0 ) {
+            $_desc_pieces = str_replace(PHP_EOL, "-----------", $text);  // ↵
+            $_desc_pieces = explode("-----------", $_desc_pieces);
+
+            $total_br = count($_desc_pieces);
+		}
+
+		return $total_br;
+	}
+
+	private function format_item_thumb($_thumb_id) {
+        $img_URL = false;
+
+        if( is_array($_thumb_id) ) {
+            $img_URL = get_post($_thumb_id[0])->guid;
+        } else if( is_string($_thumb_id) ) {
+            $img_URL = get_post($_thumb_id)->guid;
+        }
+
+        if($img_URL) {
+            $img_check = wp_check_filetype($img_URL);
+            $file_archive = @file_get_contents($img_URL);
+
+            if($file_archive) {
+                $b64_img = base64_encode($file_archive);
+                return [
+                    'url' => "data:" . $img_check['type'] . ";base64," . $b64_img,
+                    'ext' => $img_check['ext']
+                ];
+            } else {
+                return false;
+            }
+        } else {
+            return false;
+        }
+    }
+
+    private function get_tab_name($tab_id) {
+        global $wpdb;
+
+        if( intval($tab_id) <= 0) {
+            return false;
+        }
+
+        $meta = $wpdb->get_row($wpdb->prepare("SELECT * FROM $wpdb->postmeta WHERE meta_id=%d", $tab_id));
+
+        if( is_null($meta) || empty($meta)) {
+            return false;
+        }
+
+        return $meta;
+    }
+
+    private function get_tab_id($collection, $tab_name) {
+        global $wpdb;
+
+        if( ctype_digit($collection) && !empty($tab_name) ) {
+            $meta = $wpdb->get_row( $wpdb->prepare("SELECT * FROM $wpdb->postmeta WHERE post_id=%d AND meta_key='socialdb_collection_tab' AND meta_value=%s", $collection, $tab_name));
+
+            if( !is_null($meta) ) {
+                return $meta;
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -933,7 +1187,10 @@ class ObjectController extends Controller {
 /*
  * Controller execution
  */
-if ($_POST['operation']) {
+if($_POST['operation_priority']){
+    $operation = $_POST['operation_priority'];
+    $data = $_POST;
+}else if ($_POST['operation']) {
     $operation = $_POST['operation'];
     $data = $_POST;
 } else {

@@ -229,6 +229,16 @@ $(window).load(function () {
         redirectAdvancedSearch('#search_collections');
        // showAdvancedSearch($("#src").val(), search_for);
     });
+    $('#formSearchCollectionsIbram').submit(function (e) {
+        e.preventDefault();
+        showIbramSearch( $('#search_collections').val());
+       // showAdvancedSearch($("#src").val(), search_for);
+    });
+    $('#formSearchCollectionsTopSearch').submit(function (e) {
+        e.preventDefault();
+        showIbramSearch( $('#search_collections').val());
+       // showAdvancedSearch($("#src").val(), search_for);
+    });
 
     // When user types enter at main search box, it opens the advanced search form with the searched term
     /* $("#search_collections").keyup(function (e) {
@@ -866,9 +876,9 @@ function populateList(src) {
     ;
 
 }
-// mostra a listagem inicial
+// Mostra a listagem inicial
 function showList(src) {
-    if($('#search-advanced-text').val() == ''){
+    if($('#search-advanced-text').val() == '') {
         $('.selectors a').removeClass('highlight');
         $('#list').hide();
         $('#loader_objects').show();
@@ -879,11 +889,16 @@ function showList(src) {
         }).done(function (result) {
             $('#hideTrash').hide();
             elem = jQuery.parseJSON(result);
-            //console.log(elem,result);
+
+            var set_order = elem.preset_order;
+            if(set_order) {
+                var order_btn = $(".header-colecao button#" + set_order.toLowerCase());
+                $(".sort_list").css('background', 'white');
+                $(order_btn).css('background', 'buttonface');
+            }
             $('#loader_objects').hide();
-            $('#list').html(elem.page);
             $('#wp_query_args').val(elem.args);
-            $('#list').show();
+            $('#list').html(elem.page).show();
             if (elem.empty_collection) {
                 $('#collection_empty').show();
                 $('#items_not_found').hide();
@@ -1714,7 +1729,7 @@ function showModalFilters(action, category_root_name, category_root_id, dynatree
     $('.dropdown-toggle').dropdown();
 }
 
-function showSingleObject(object_id, src) {
+function showSingleObject(object_id, src,garbage) {
     $.ajax({
         url: src + '/controllers/object/object_controller.php',
         type: 'POST',
@@ -1763,6 +1778,24 @@ function showSingleObjectByName(object_name, src) {
         }
     });
 }
+//PARA CRIAR NOVOS ITEMS
+function createItemPage(src) {
+    $.ajax({
+        url: src + '/controllers/object/object_controller.php',
+        type: 'POST',
+        data: {operation: 'create-item',collection_id: $("#collection_id").val()}
+    }).done(function (result) {
+        $("#form").html('');
+        $('#main_part').hide();
+        $('#display_view_main_page').hide();
+        $('#loader_collections').hide();
+        $('#configuration').html(result).show();
+        $('.dropdown-toggle').dropdown();
+        $('.nav-tabs').tab();
+    });
+}
+
+
 //PARA CATEGORIAS
 function showPageCategories(slug_category, src) {
     // console.log('I am here');
@@ -2435,7 +2468,9 @@ function resetHomeStyleSettings() {
             $($_main).hide();
         }
     }
-
+    
+    $("#users_div").hide();
+    
     var ibram_active = $('.ibram_menu_active').val();
     if( ibram_active && ibram_active == true.toString() ) {
         $('#collection_post').show();
@@ -2890,3 +2925,103 @@ function logColAction(search_val, item_id) {
         });
     }
 }
+
+function show_reason_modal(id)
+{
+    $("#reasonModal").modal('show');
+    $("#btnRemoveReason").attr("data-id-exclude", id);
+}
+
+//Modal addReason IBRAM
+
+//Exclui item selecionado 
+function exclude_item()
+{
+    var text = $("#reasontext").val();
+    if(text.length > 0)
+    {
+        var id_delete = $("#btnRemoveReason").attr("data-id-exclude");
+
+        $.ajax({
+            type: "POST",
+            url: $('#src').val() + "/controllers/event/event_controller.php",
+            data: {operation: 'save_reason_to_exclude', elem_id: id_delete, reason: text, collection_id: $('#collection_id').val()}
+        });
+
+        $("#reasonModal").modal('hide');
+        $("#" + id_delete).click();
+    }
+}
+
+//Verifica se botão de exclusão deve ser ativado
+function change_button()
+{
+    var text = $("#reasontext").val();
+    if(text.length > 0)
+    {
+        $("#btnRemoveReason").attr('disabled', false);
+    }else
+    {
+        $("#btnRemoveReason").attr('disabled', true);
+    }
+}
+//object_dc_type
+//Gera thumbnail de um pdf
+/*function generate_pdf_thumbnail(pdf_url)
+{
+    PDFJS.getDocument(pdf_url).promise.then(function (doc) {
+        var page = [];
+        page.push(1);//Get first page
+
+        return Promise.all(page.map(function (num) {
+            return doc.getPage(num).then(makeThumb)
+                .then(function (canvas) {
+                    var img = canvas.toDataURL("image/png");
+
+                    return img;
+                });
+        }));
+    });
+
+}*/
+
+function makeThumb(page) {
+    var vp = page.getViewport(1);
+    var canvas = document.createElement("canvas");
+    canvas.width = 595;
+    canvas.height = 842;
+    var scale = Math.min(canvas.width / vp.width, canvas.height / vp.height);
+    return page.render({canvasContext: canvas.getContext("2d"), viewport: page.getViewport(scale)}).promise.then(function () {
+        return canvas;
+    });
+}
+
+$(document).on("submit", "#reindexation_form", function (event) {
+    event.preventDefault();
+    var formData = new FormData(this);
+
+    $.ajax({
+        url: $("#src").val() + '/controllers/collection/collection_controller.php',
+        type: 'POST',
+        data: formData,
+        processData: false,
+        contentType: false
+    }).done(function (result) {
+        elem = jQuery.parseJSON(result);
+        //ssdfdasd
+    });
+
+    /*for(var pair of formData.entries()) {
+        console.log(pair[0]+ ', '+ pair[1]);
+    }*/
+});
+
+$("#reindexation_form").on('submit', function (event) {
+    alet("Aqui");
+    event.preventDefault();
+    var formData = new FormData(this);
+
+    for(var pair of formData.entries()) {
+     console.log(pair[0]+ ', '+ pair[1]);
+    }
+});

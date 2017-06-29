@@ -571,7 +571,11 @@
         properties = $('#compounds_'+property_id).val().split(',');
         if(properties&&properties.length>0){
             for(var i = 0; i<properties.length; i++){
-                  $('#core_validation_'+property_id+'_'+properties[i]+'_'+((id+1))).val('false');
+                if(!$('#core_validation_'+property_id+'_'+properties[i]+'_'+((id+1))).attr('validate_compound')) {
+                    $('#ok_field_'+property_id+'_'+properties[i]+'_'+((id+1))).hide();
+                    $('#required_field_'+property_id+'_'+properties[i]+'_'+((id+1))).show();
+                    $('#core_validation_'+property_id+'_'+properties[i]+'_'+((id+1))).val('false');
+                }
             }
              validate_all_fields_compounds(property_id);
         }
@@ -588,6 +592,15 @@
             }
             validate_all_fields_compounds(property_id);
         }
+        <?php if($references['is_edit']): ?>
+        if($('#button_property_'+property_id+'_'+(id-1)).length == 0){
+            $('#container_field_'+property_id+'_'+(id-1)).append("<button type='button' id='button_property_"+property_id+"_"+(id-1)+"' onclick='show_fields_metadata_cardinality_compounds("+property_id+","+(id-1)+")'"+
+                    "style='margin-top: 5px;' class='btn btn-primary btn-lg btn-xs btn-block'>" +
+                    "<span class='glyphicon glyphicon-plus'></span>Adicionar campo</button>");
+        }else{
+            $('#button_property_'+property_id+'_'+(id-1)).show();
+        }
+        <?php else: ?>
         //se o proximo container
         if(!$('#container_field_'+property_id+'_'+(id+1)).is(':visible')){
             show_button = true;
@@ -599,6 +612,7 @@
         //se 
         if(show_button)
             $('#button_property_'+property_id+'_'+id).show();
+        <?php endif; ?>
         
     }
     //################################ VALIDACOES##############################################//
@@ -701,9 +715,10 @@
     /**
     * 
 
-     * @type Arguments     */
+    * @type Arguments     */
     function set_field_valid_compounds(id,seletor,compound_id){
-        console.log('set_field_valid_compounds',id,seletor,compound_id,$('#'+seletor).val());
+        //console.log(seletor,$('#'+seletor).val(),seletor.split('_'));
+        var index = (seletor.split('_')[4]) ? seletor.split('_')[4] : 0
         if($('#'+seletor).val()==='false'){
             var slug = seletor.replace('core_validation_','');
             $('#ok_field_'+slug).hide();
@@ -712,26 +727,59 @@
             var slug = seletor.replace('core_validation_','');
             $('#ok_field_'+slug).show();
             $('#required_field_'+slug).hide();
+            if($('#only_field_'+slug+' #core_validation_'+compound_id).length >0){
+                $('#only_field_'+slug+' #core_validation_'+compound_id).val('true');
+            }
         }
-        validate_all_fields_compounds(compound_id);
+        validate_all_fields_compounds(compound_id,index);
     }
     
-    function validate_all_fields_compounds(compound_id){
+    function validate_all_fields_compounds(compound_id,index){
         var cont = 0;
-        $( ".core_validation_compounds_"+compound_id).each(function( index ) {
-            if($( this ).val()==='false'){
-                 console.log($( this ));
-                cont++;
+        var seletor = ($('.core_validation_'+compound_id+'_'+index).length > 0) ? '.core_validation_'+compound_id+'_'+index : '#core_validation_'+compound_id;
+        console.log(seletor,index);
+        //if(!index){
+            for(var i = 0;i<parseInt($("#cardinality_"+compound_id).val());i++){
+                //if($('#container_field_'+compound_id+'_'+i).is(':visible')){
+                    $( ".core_validation_compounds_"+compound_id+"_"+i).each(function( index ) {
+                        if($( this ).val()==='false'){
+                            cont++;
+                        }
+                    });
+                //}
             }
-        });
-        console.log(cont);
-        if(cont===0){
-            $('#core_validation_'+compound_id).val('true');
-            set_field_valid(compound_id,'core_validation_'+compound_id);
+//        }else{
+//            $( ".core_validation_compounds_"+compound_id+"_"+index).each(function( index ) {
+//                if($( this ).val()==='false'){
+//                    cont++;
+//                }
+//            });
+//        }
+       //se for do tipo de um field apenas
+        if($('#type_required_'+compound_id).length > 0){
+            var total_fields = $('#count_fields_'+compound_id).val();
+            if(cont!=total_fields){
+                $('input[name="core_validation_'+compound_id+'"]').val('true');
+                $(seletor).val('true');
+                set_field_valid(compound_id,'core_validation_'+compound_id);
+            }else{
+                $('input[name="core_validation_'+compound_id+'"]').val('false');
+                $(seletor).val('false');
+                set_field_valid(compound_id,'core_validation_'+compound_id);
+            }
+            
         }else{
-            $('#core_validation_'+compound_id).val('false');
-            set_field_valid(compound_id,'core_validation_'+compound_id);
+            if(cont===0){
+                $(seletor).val('true');
+                $('input[name="core_validation_'+compound_id+'"]').val('true');
+                set_field_valid(compound_id,'core_validation_'+compound_id);
+            }else{
+                $('input[name="core_validation_'+compound_id+'"]').val('false');
+                $(seletor).val('false');
+                set_field_valid(compound_id,'core_validation_'+compound_id);
+            }
         }
+        console.log(cont,'compounds',seletor,'#core_validation_'+compound_id,$('#core_validation_'+compound_id).val());
     }
 
 </script>

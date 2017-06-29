@@ -30,7 +30,8 @@ class MappingModel extends Model {
         $object_id = wp_insert_post($post);
         add_post_meta($object_id, 'socialdb_channel_identificator', $name);
         add_post_meta($collection_id, 'socialdb_collection_channel', $object_id);
-        wp_set_object_terms($object_id, array((int) $this->parent->term_id), 'socialdb_channel_type');
+        if(isset($this->parent->term_id))
+            wp_set_object_terms($object_id, array((int) $this->parent->term_id), 'socialdb_channel_type');
         return $object_id;
     }
 
@@ -446,12 +447,13 @@ class MappingModel extends Model {
         return $data;
     }
 
-    public function save_delimiter_csv($mapping_id, $delimiter, $multi_values, $hierarchy, $import_zip_csv, $has_header = 0) {
+    public function save_delimiter_csv($mapping_id, $delimiter, $multi_values, $hierarchy, $import_zip_csv, $has_header = 0 ,$code = 'utf8') {
         update_post_meta($mapping_id, 'socialdb_channel_csv_delimiter', $delimiter);
         update_post_meta($mapping_id, 'socialdb_channel_csv_multi_values', $multi_values);
         update_post_meta($mapping_id, 'socialdb_channel_csv_hierarchy', $hierarchy);
         update_post_meta($mapping_id, 'socialdb_channel_csv_import_zip', $import_zip_csv);
         update_post_meta($mapping_id, 'socialdb_channel_csv_has_header', $has_header);
+        update_post_meta($mapping_id, 'socialdb_channel_csv_code', $code);
     }
 
     public function validate_zip(array $File, array $data, $Name = null) {
@@ -502,6 +504,7 @@ class MappingModel extends Model {
     }
 
     public function unzip($file, $data) {
+        error_reporting(0);
         //if ($_FILES["collection_file"]["name"]) {
         //$file = $_FILES["collection_file"];
         $filename = $file["name"];
@@ -541,6 +544,7 @@ class MappingModel extends Model {
      */
     public function get_csv_in_zip_file($path,$delimiter) {
          /* here it is really happening */
+         error_reporting(0);
         $time = time();
         $targetdir = dirname(__FILE__) . "/" .$time;
         $targetzip = dirname(__FILE__)."/" . $time . ".zip";
